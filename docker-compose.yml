@@ -10,6 +10,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fitai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # API e Web em containers (opcional): docker compose --profile full up -d --build
   api:
@@ -17,12 +22,19 @@ services:
     build:
       context: .
       dockerfile: backend/FitAi.Api/Dockerfile
-    depends_on: [postgres]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=fitai;Username=postgres;Password=password
       Auth__JwtSecret: ${FITAI_JWT_SECRET:-dev-only-secret-change-me-in-production-0123456789}
       Ai__Providers__OpenAI__ApiKey: ${OPENAI_API_KEY:-}
+      Auth__AdminEmails__1: ${FITAI_ADMIN_EMAIL:-}
+      Auth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Auth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      YouTube__ApiKey: ${YOUTUBE_API_KEY:-}
     ports:
       - "8080:8080"
 
@@ -32,6 +44,7 @@ services:
       context: .
       dockerfile: frontend/FitAi.Web/Dockerfile
     depends_on: [api]
+    restart: unless-stopped
     environment:
       Api__BaseUrl: http://api:8080
       Api__PublicUrl: http://localhost:8080

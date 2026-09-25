@@ -174,6 +174,79 @@ A **consistência** agrupa as sessões pela data de início (UTC). Na **Home**, 
 
 ---
 
+## 🚀 Acesso rápido (Docker Desktop)
+
+Com o [Docker Desktop](https://www.docker.com/products/docker-desktop/) aberto, na raiz do repositório:
+
+```bash
+docker compose --profile full up -d --build
+```
+
+Isso sobe três containers: **PostgreSQL**, **API** e **Web**. A API aplica as migrations e cria os **dados de exemplo** sozinha na primeira subida (leva ~1 minuto por causa do build).
+
+| O quê | Endereço |
+| --- | --- |
+| Web (aluno) | http://localhost:3000 |
+| Área administrativa | http://localhost:3000/admin |
+| API + referência interativa (Scalar) | http://localhost:8080/docs |
+
+Na tela de login use o **Login de desenvolvimento** (só o e-mail, sem senha) com um dos usuários de exemplo:
+
+| Usuário | Papel | O que dá para ver |
+| --- | --- | --- |
+| `admin@fitai.local` | Admin | Painel da plataforma, professores, todos os alunos, configurações do Coach AI (`/admin/ia`) |
+| `professor@fitai.local` | Professor (Paulo) | Painel dos alunos dele, editor de planos, convites e o código `FIT-DEMO26` |
+| `aluno@fitai.local` | Aluno (Ana) | Plano de treino ativo, ~4 meses de histórico, sequência 🔥 e estatísticas preenchidas |
+| `novo.aluno@fitai.local` | Aluno convidado | Primeiro acesso: cai no onboarding já vinculado ao professor (convite por e-mail) |
+| qualquer outro e-mail | Aluno sem professor | Onboarding do zero; pode usar o código `FIT-DEMO26` para se vincular ao professor |
+
+**Coach AI:** para o chat responder, crie um arquivo `.env` na raiz (já está no `.gitignore`) antes do `up`:
+
+```bash
+OPENAI_API_KEY=sk-...
+# opcionais
+FITAI_ADMIN_EMAIL=seu-email@gmail.com   # vira Admin
+GOOGLE_CLIENT_ID=...                    # login com Google (redirect URI: http://localhost:8080/auth/google/signin)
+GOOGLE_CLIENT_SECRET=...
+YOUTUBE_API_KEY=...                     # vídeos no chat; sem ela o Coach indica um link de busca
+```
+
+Comandos úteis: `docker compose --profile full logs -f api` (logs), `docker compose --profile full down` (parar) e `docker compose --profile full down -v` (parar e **apagar o banco**, recriando os dados de exemplo na próxima subida). Se a porta 5432, 8080 ou 3000 já estiver em uso na sua máquina, pare o serviço que a ocupa ou ajuste o `ports` no `docker-compose.yml`.
+
+> Os usuários de exemplo e o login de desenvolvimento só existem com `ASPNETCORE_ENVIRONMENT=Development` (`Database:SeedDemoData` e `Auth:EnableDevLogin`). Em produção, desligue os dois e use o login com Google.
+
+---
+
+## 🖼️ Telas
+
+Prints gerados com os dados de exemplo (as fotos de capa vêm de uma CDN externa e aparecem normalmente quando há internet).
+
+**Aluno (Web, layout mobile)**
+
+| Login | Onboarding | Home | Plano de Treino |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/01-login.png" width="200"> | <img src="docs/screenshots/02-onboarding.png" width="200"> | <img src="docs/screenshots/03-home.png" width="200"> | <img src="docs/screenshots/04-plano.png" width="200"> |
+
+| Treino do dia | Coach AI | Evolução | Perfil |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/05-treino.png" width="200"> | <img src="docs/screenshots/06-coach.png" width="200"> | <img src="docs/screenshots/07-evolucao.png" width="200"> | <img src="docs/screenshots/08-perfil.png" width="200"> |
+
+**Área administrativa (`/admin`)**
+
+| Painel do professor | Alunos |
+| --- | --- |
+| <img src="docs/screenshots/09-admin-painel.png" width="420"> | <img src="docs/screenshots/10-admin-alunos.png" width="420"> |
+
+| Detalhe do aluno | Editor de plano |
+| --- | --- |
+| <img src="docs/screenshots/11-admin-aluno.png" width="420"> | <img src="docs/screenshots/12-admin-editor-plano.png" width="420"> |
+
+| Convites e códigos | Configurações do Coach AI (admin) |
+| --- | --- |
+| <img src="docs/screenshots/13-admin-convites.png" width="420"> | <img src="docs/screenshots/14-admin-coach-ai.png" width="420"> |
+
+---
+
 ## ⚙️ Como Executar
 
 ### 1. Pré-requisitos
@@ -191,9 +264,9 @@ docker compose up -d
 
 ### 3. Configuração
 
-O `appsettings.Development.json` da API já vem pronto para desenvolvimento local: banco em `localhost:5432`, segredo JWT de desenvolvimento, migrations aplicadas no startup e **login de desenvolvimento** (entra só com o e-mail, sem Google).
+O `appsettings.Development.json` da API já vem pronto para desenvolvimento local: banco em `localhost:5432`, segredo JWT de desenvolvimento, migrations e [dados de exemplo](#-acesso-rápido-docker-desktop) aplicados no startup e **login de desenvolvimento** (entra só com o e-mail, sem Google).
 
-1. Troque `admin@fitai.local` em `Auth:AdminEmails` (`backend/FitAi.Api/appsettings.Development.json`) pelo seu e-mail — é ele que vira **Admin**.
+1. Para o seu e-mail também virar **Admin**, adicione-o em `Auth:AdminEmails` (`backend/FitAi.Api/appsettings.Development.json`).
 2. As chaves ficam em [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), nunca no `appsettings.json`:
 
 ```bash
@@ -215,7 +288,7 @@ dotnet run --project backend/FitAi.Api     # API em http://localhost:8080 (refer
 dotnet run --project frontend/FitAi.Web    # Web em http://localhost:3000 (painel em /admin)
 ```
 
-Ou tudo em containers: `docker compose --profile full up -d --build`.
+Entre com os [usuários de exemplo](#-acesso-rápido-docker-desktop). Ou suba tudo em containers, como descrito no acesso rápido.
 
 **App Android:** abra `app/FitAi.App` no Visual Studio ou Rider (com o workload `maui-android` e o Android SDK) e rode num emulador. O app aponta para `http://10.0.2.2:8080` (o localhost da máquina visto pelo emulador) — para aparelho físico, troque `AppConfig.ApiBaseUrl`. O retorno do login usa o deep link `fitai://auth`, já liberado em `Auth:AllowedRedirectUris`.
 
@@ -237,7 +310,7 @@ FitAi.slnx
 ├── shared/FitAi.Contracts/     # DTOs de request/response e enums compartilhados
 ├── tests/FitAi.Api.Tests/      # xUnit
 ├── docker-compose.yml          # PostgreSQL 16
-├── docs/                       # template de prompt para novas rotas
+├── docs/                       # prints das telas e template de prompt para novas rotas
 └── tasks/                      # especificações originais das funcionalidades
 ```
 

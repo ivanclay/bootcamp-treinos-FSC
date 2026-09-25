@@ -138,6 +138,12 @@ if (config.GetValue<bool>("Database:MigrateOnStartup"))
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
+if (config.GetValue<bool>("Database:SeedDemoData"))
+{
+    using var scope = app.Services.CreateScope();
+    await DemoDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), TimeProvider.System);
+}
+
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages(async context =>
