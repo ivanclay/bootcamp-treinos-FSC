@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Início";
     var today = Model.Home.TodayWorkoutDay;
-    var hero = Images.Or(today?.CoverImageUrl);
+    var hero = Images.Resolve(Images.Home);
     var dayUrl = today is null ? "/plano" : $"/treino/{today.WorkoutPlanId}/{today.Id}";
     var monday = Model.Today.AddDays(-(((int)Model.Today.DayOfWeek + 6) % 7));
 }

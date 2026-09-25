@@ -35,7 +35,7 @@ public partial class PlanViewModel(ApiClient api) : BaseViewModel
 
         PlanName = plan.Name;
         Goal = Format.Goal(plan.Goal).ToUpperInvariant();
-        Cover = Format.Cover(plan.CoverImageUrl);
+        Cover = Format.Cover(plan.CoverImageUrl, "/covers/plan.jpg");
         ByTeacher = plan.Source == WorkoutPlanSource.TEACHER;
         foreach (var weekDay in Format.WeekOrder)
         {

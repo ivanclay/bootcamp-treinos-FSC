@@ -49,8 +49,12 @@ public static class Format
 
     public static string Kg(int grams) => (grams / 1000.0).ToString("0.#", PtBr);
 
-    public static string Cover(string? url) =>
-        string.IsNullOrWhiteSpace(url) ? "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO3y8pQ6GBg8iqe9pP2JrHjwd1nfKtVSQskI0v" : url;
+    /// <summary>Capas vêm da API como caminho relativo (/covers/...); resolve para URL absoluta.</summary>
+    public static string Cover(string? url, string fallback = "/covers/upper-1.jpg")
+    {
+        var value = string.IsNullOrWhiteSpace(url) ? fallback : url;
+        return value.StartsWith('/') ? AppConfig.ApiBaseUrl.TrimEnd('/') + value : value;
+    }
 
     public static string ErrorMessage(Exception e) => e switch
     {

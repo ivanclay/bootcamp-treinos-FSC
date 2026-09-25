@@ -145,6 +145,8 @@ if (config.GetValue<bool>("Database:SeedDemoData"))
 }
 
 app.UseForwardedHeaders();
+// Fotos de capa (wwwroot/covers), usadas pela Web e pelo App.
+app.UseStaticFiles();
 app.UseExceptionHandler();
 app.UseStatusCodePages(async context =>
 {
