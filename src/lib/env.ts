@@ -11,6 +11,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().min(1),
+  YOUTUBE_API_KEY: z.string().optional(),
   WEB_APP_BASE_URL: z.url(),
   NODE_ENV: z
     .enum(["development", "production", "test"])

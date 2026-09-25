@@ -16,6 +16,10 @@ import { auth } from "../lib/auth.js";
 import { CreateWorkoutPlan } from "../usecases/CreateWorkoutPlan.js";
 import { GetUserTrainData } from "../usecases/GetUserTrainData.js";
 import { ListWorkoutPlans } from "../usecases/ListWorkoutPlans.js";
+import {
+  buildExerciseVideoSearchUrl,
+  SearchExerciseVideos,
+} from "../usecases/SearchExerciseVideos.js";
 import { UpsertUserTrainData } from "../usecases/UpsertUserTrainData.js";
 
 const SYSTEM_PROMPT = `Você é um personal trainer virtual especialista em montagem de planos de treino personalizados.
@@ -33,6 +37,13 @@ const SYSTEM_PROMPT = `Você é um personal trainer virtual especialista em mont
    - Faça perguntas simples e diretas, tudo em uma única mensagem.
    - Após receber os dados, salve com a tool \`updateUserTrainData\`, enviando também o \`name\` informado. **IMPORTANTE**: converta o peso de kg para gramas (multiplique por 1000) antes de salvar.
 3. Se o usuário **já tem dados cadastrados**: cumprimente-o pelo nome de forma amigável.
+
+## Dúvidas sobre Exercícios
+
+Quando o usuário perguntar como executar um exercício:
+- Explique a **Execução** e os **Erros** mais comuns, em poucas linhas.
+- SEMPRE chame a tool \`searchExerciseVideos\` com o nome do exercício e indique um vídeo.
+- NUNCA invente links. Use apenas \`videos[].url\` retornado pela tool. Se \`videos\` vier vazio, indique o \`searchUrl\`.
 
 ## Criação de Plano de Treino
 
@@ -162,6 +173,29 @@ export const aiRoutes = async (app: FastifyInstance) => {
             execute: async () => {
               const listWorkoutPlans = new ListWorkoutPlans();
               return listWorkoutPlans.execute({ userId });
+            },
+          }),
+          searchExerciseVideos: tool({
+            description:
+              "Busca vídeos no YouTube mostrando a execução correta de um exercício. Retorna os vídeos encontrados e um link de busca.",
+            inputSchema: z.object({
+              exerciseName: z
+                .string()
+                .trim()
+                .min(1)
+                .describe("Nome do exercício (ex: Remada Curvada)"),
+            }),
+            execute: async ({ exerciseName }) => {
+              try {
+                const searchExerciseVideos = new SearchExerciseVideos();
+                return await searchExerciseVideos.execute({ exerciseName });
+              } catch (error) {
+                app.log.error(error);
+                return {
+                  videos: [],
+                  searchUrl: buildExerciseVideoSearchUrl(exerciseName),
+                };
+              }
             },
           }),
           createWorkoutPlan: tool({
