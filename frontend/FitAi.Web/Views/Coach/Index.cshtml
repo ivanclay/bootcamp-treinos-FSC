@@ -1,0 +1,45 @@
+@model CoachViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    ViewData["Title"] = "Coach AI";
+    ViewData["AppClass"] = "chat-app";
+    var token = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<div class="chat" data-token="@token" data-onboarding="@(Model.Onboarding ? "true" : "false")" data-prefill="@Model.Prefill">
+    <header class="chat-head">
+        <div class="coach-avatar">@Icons.Get("sparkles", 20)</div>
+        <div>
+            <h1>Coach AI</h1>
+            <div class="online">Online</div>
+        </div>
+        <div class="spacer"></div>
+        <a class="icon-btn" href="/" aria-label="Fechar">@Icons.Get("x", 20)</a>
+    </header>
+
+    <div class="messages" id="messages" aria-live="polite"></div>
+
+    @if (Model.ShowInviteCode)
+    {
+        <form class="invite-box" id="invite-form">
+            <span class="small muted">Tem um código do seu professor?</span>
+            <input name="code" placeholder="FIT-XXXXXX" maxlength="20" autocomplete="off" />
+            <button class="btn sm" type="submit">Usar</button>
+        </form>
+    }
+
+    <div class="suggestions" id="suggestions">
+        <button type="button">Montar meu plano de treino</button>
+        <button type="button">Alterar plano de treino</button>
+        <button type="button">Mudar objetivo</button>
+        <button type="button">Atualizar meus dados</button>
+    </div>
+
+    <form class="composer" id="composer" autocomplete="off">
+        <input id="input" name="message" placeholder="Digite sua mensagem" maxlength="2000" />
+        <button type="submit" aria-label="Enviar">@Icons.Get("arrow-up", 20)</button>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/coach.js" asp-append-version="true"></script>
+}

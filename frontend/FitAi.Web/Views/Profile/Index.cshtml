@@ -1,0 +1,66 @@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "Perfil";
+    var user = Model.User;
+    var data = Model.TrainData;
+    var flash = TempData["Flash"] as string;
+    var flashError = TempData["FlashError"] as string;
+}
+<div class="topbar"><div class="logo">FIT.AI</div></div>
+<div class="page">
+    @if (flash is not null) { <div class="alert success">@flash</div> }
+    @if (flashError is not null) { <div class="alert error">@flashError</div> }
+
+    <div class="profile-head">
+        @if (user.Image is not null)
+        {
+            <div class="avatar" style="background-image:url('@user.Image')"></div>
+        }
+        else
+        {
+            <div class="avatar">@(user.Name.Length > 0 ? user.Name[..1].ToUpperInvariant() : "?")</div>
+        }
+        <div>
+            <h1>@user.Name</h1>
+            <p>@(user.TeacherName is not null ? $"Professor: {user.TeacherName}" : Format.Role(user.Role))</p>
+        </div>
+    </div>
+
+    @if (data is null)
+    {
+        <div class="empty">
+            Você ainda não informou seus dados.
+            <a class="btn sm" href="/perfil/editar">Informar agora</a>
+        </div>
+    }
+    else
+    {
+        <div class="stat-grid">
+            <div class="stat"><span class="badge">@Icons.Get("weight", 16)</span><strong>@Format.Kg(data.WeightInGrams)</strong><span>KG</span></div>
+            <div class="stat"><span class="badge">@Icons.Get("ruler", 16)</span><strong>@data.HeightInCentimeters</strong><span>CM</span></div>
+            <div class="stat"><span class="badge">@Icons.Get("percent", 16)</span><strong>@data.BodyFatPercentage%</strong><span>GC</span></div>
+            <div class="stat"><span class="badge">@Icons.Get("user", 16)</span><strong>@data.Age</strong><span>ANOS</span></div>
+        </div>
+        <a class="btn outline block" href="/perfil/editar">@Icons.Get("edit", 16) Editar dados</a>
+    }
+
+    @if (user.Role == UserRole.STUDENT && user.TeacherId is null)
+    {
+        <form class="card stack" method="post" asp-antiforgery="true" action="/perfil/codigo">
+            <strong>Tem um código do seu professor?</strong>
+            <div class="row">
+                <input class="input" name="code" placeholder="FIT-XXXXXX" required maxlength="20" style="text-transform:uppercase" />
+                <button class="btn sm" type="submit">Usar</button>
+            </div>
+        </form>
+    }
+
+    @if (user.Role is UserRole.ADMIN or UserRole.TEACHER)
+    {
+        <a class="btn block" href="/admin">@Icons.Get("dashboard", 16) Área administrativa</a>
+    }
+
+    <form method="post" asp-antiforgery="true" action="/sair" class="center">
+        <button class="btn ghost-danger" type="submit">Sair da conta @Icons.Get("log-out", 16)</button>
+    </form>
+</div>
