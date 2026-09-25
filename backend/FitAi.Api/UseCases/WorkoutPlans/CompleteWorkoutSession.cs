@@ -22,7 +22,7 @@ public sealed class CompleteWorkoutSession(AppDbContext db)
         }
         if (input.CompletedAt < session.StartedAt)
         {
-            throw new ValidationException("completedAt must be after startedAt");
+            throw new ValidationException("A conclusão deve ser depois do início do treino");
         }
 
         session.CompletedAt = input.CompletedAt.ToUniversalTime();

@@ -16,7 +16,7 @@ public sealed class UpdateAiSettings(AiSettingsStore store, IOptions<AiOptions> 
         var request = input.Settings;
         if (!options.Value.Providers.TryGetValue(request.Provider, out var provider))
         {
-            throw new ValidationException($"Unknown AI provider '{request.Provider}'");
+            throw new ValidationException($"Provedor de IA desconhecido: '{request.Provider}'");
         }
 
         var upper = CleanUrls(request.UpperBodyCoverImages);
@@ -35,7 +35,7 @@ public sealed class UpdateAiSettings(AiSettingsStore store, IOptions<AiOptions> 
     {
         var result = urls.Select(u => u.Trim()).Where(u => u.Length > 0).Distinct().ToList();
         var invalid = result.FirstOrDefault(u => !Uri.TryCreate(u, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"));
-        if (invalid is not null) throw new ValidationException($"Invalid image URL: {invalid}");
+        if (invalid is not null) throw new ValidationException($"URL de imagem inválida: {invalid}");
         return result;
     }
 }

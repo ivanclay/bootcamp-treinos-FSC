@@ -21,21 +21,21 @@ public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider
         var role = input.Invite.Role;
         var isAdmin = actor.Role == UserRole.ADMIN;
 
-        if (role == UserRole.ADMIN) throw new ValidationException("Admins are configured in the application settings");
-        if (role == UserRole.TEACHER && !isAdmin) throw new ForbiddenException("Only admins can invite teachers");
+        if (role == UserRole.ADMIN) throw new ValidationException("Administradores são definidos na configuração da aplicação");
+        if (role == UserRole.TEACHER && !isAdmin) throw new ForbiddenException("Somente administradores podem convidar professores");
 
         string? teacherId = null;
         if (role == UserRole.STUDENT)
         {
             teacherId = isAdmin ? input.Invite.TeacherId : actor.Id;
-            if (string.IsNullOrWhiteSpace(teacherId)) throw new ValidationException("teacherId is required");
+            if (string.IsNullOrWhiteSpace(teacherId)) throw new ValidationException("Escolha o professor");
             var teacherExists = await db.Users.AnyAsync(u => u.Id == teacherId && u.Role == UserRole.TEACHER, ct);
-            if (!teacherExists) throw new ValidationException("Teacher not found");
+            if (!teacherExists) throw new ValidationException("Professor não encontrado");
         }
 
         var pendingDuplicate = await db.EmailInvites.AnyAsync(
             i => i.Email == email && i.AcceptedAt == null && i.Role == role && i.TeacherId == teacherId, ct);
-        if (pendingDuplicate) throw new ConflictException("There is already a pending invite for this email");
+        if (pendingDuplicate) throw new ConflictException("Já existe um convite pendente para este e-mail");
 
         var invite = new EmailInvite { Email = email, Role = role, TeacherId = teacherId, InvitedById = actor.Id };
 
@@ -48,10 +48,10 @@ public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider
             }
             else
             {
-                if (existingUser.Role != UserRole.STUDENT) throw new ConflictException("This user is not a student");
+                if (existingUser.Role != UserRole.STUDENT) throw new ConflictException("Este usuário não é aluno");
                 if (existingUser.TeacherId is not null && existingUser.TeacherId != teacherId)
                 {
-                    throw new ConflictException("This student is already linked to another teacher");
+                    throw new ConflictException("Este aluno já está vinculado a outro professor");
                 }
                 existingUser.TeacherId = teacherId;
             }

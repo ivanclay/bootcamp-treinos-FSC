@@ -22,7 +22,7 @@ public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOption
     public async Task<Output> ExecuteAsync(Input input, CancellationToken ct = default)
     {
         var email = input.Email.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(email)) throw new ValidationException("Email is required");
+        if (string.IsNullOrWhiteSpace(email)) throw new ValidationException("E-mail obrigatório");
 
         var login = await db.ExternalLogins.Include(l => l.User)
             .FirstOrDefaultAsync(l => l.Provider == input.Provider && l.ProviderKey == input.ProviderKey, ct);

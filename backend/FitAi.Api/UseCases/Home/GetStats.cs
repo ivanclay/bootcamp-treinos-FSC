@@ -12,7 +12,7 @@ public sealed class GetStats(AppDbContext db, TimeProvider timeProvider)
 
     public async Task<StatsResponse> ExecuteAsync(Input input, CancellationToken ct = default)
     {
-        if (input.To < input.From) throw new ValidationException("'to' must be on or after 'from'");
+        if (input.To < input.From) throw new ValidationException("A data final deve ser igual ou posterior à inicial");
 
         var plan = await db.WorkoutPlans.AsNoTracking()
             .Include(p => p.WorkoutDays).ThenInclude(d => d.Sessions)

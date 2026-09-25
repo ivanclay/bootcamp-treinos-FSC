@@ -1,0 +1,135 @@
+@model InvitesViewModel
+@{
+    ViewData["Title"] = "Convites";
+    var isAdmin = User.IsAdmin();
+}
+<div class="page-head">
+    <div>
+        <h1>Convites</h1>
+        <p>Vincule alunos por e-mail ou compartilhe um código de convite.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <form class="panel h-100" method="post" action="/admin/convites" asp-antiforgery="true">
+            <h2>@Icons.Get("mail", 16) Convite por e-mail</h2>
+            <p class="text-secondary small">Quando a pessoa entrar com o Google usando este e-mail, o vínculo é feito automaticamente. Se ela já tiver conta, é vinculada na hora.</p>
+            <div class="mb-2">
+                <input class="form-control" type="email" name="email" required placeholder="aluno@gmail.com" />
+            </div>
+            @if (isAdmin)
+            {
+                <div class="row g-2 mb-2">
+                    <div class="col-5">
+                        <select class="form-select" name="role" id="invite-role">
+                            <option value="STUDENT">Aluno</option>
+                            <option value="TEACHER">Professor</option>
+                        </select>
+                    </div>
+                    <div class="col-7">
+                        <select class="form-select" name="teacherId" id="invite-teacher">
+                            <option value="">Professor do aluno…</option>
+                            @foreach (var t in Model.Teachers) { <option value="@t.Id">@t.Name</option> }
+                        </select>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" name="role" value="STUDENT" />
+            }
+            <button class="btn btn-primary" type="submit">Enviar convite</button>
+        </form>
+    </div>
+    <div class="col-lg-6">
+        <form class="panel h-100" method="post" action="/admin/codigos" asp-antiforgery="true">
+            <h2>@Icons.Get("ticket", 16) Código de convite</h2>
+            <p class="text-secondary small">O aluno digita o código no onboarding ou no Perfil. Deixe em branco para não ter validade ou limite de usos.</p>
+            <div class="row g-2 mb-2">
+                <div class="col-6">
+                    <label class="form-label small mb-1">Validade (dias)</label>
+                    <input class="form-control" type="number" min="1" max="365" name="expiresInDays" placeholder="Sem validade" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label small mb-1">Máximo de usos</label>
+                    <input class="form-control" type="number" min="1" max="1000" name="maxUses" placeholder="Ilimitado" />
+                </div>
+            </div>
+            @if (isAdmin)
+            {
+                <div class="mb-2">
+                    <select class="form-select" name="teacherId" required>
+                        <option value="">Gerar para o professor…</option>
+                        @foreach (var t in Model.Teachers) { <option value="@t.Id">@t.Name</option> }
+                    </select>
+                </div>
+            }
+            <button class="btn btn-primary" type="submit">Gerar código</button>
+        </form>
+    </div>
+</div>
+
+<div class="panel mt-3 p-0">
+    <h2 class="px-3 pt-3">Códigos</h2>
+    <table class="table">
+        <thead><tr><th class="ps-3">Código</th>@if (isAdmin) { <th>Professor</th> }<th>Usos</th><th>Validade</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @if (Model.Codes.Count == 0) { <tr><td colspan="6" class="text-center text-secondary py-3">Nenhum código gerado.</td></tr> }
+            @foreach (var c in Model.Codes)
+            {
+                <tr>
+                    <td class="ps-3"><span class="code">@c.Code</span> <button type="button" class="btn btn-sm btn-link p-0 ms-1" onclick="navigator.clipboard.writeText('@c.Code')">copiar</button></td>
+                    @if (isAdmin) { <td>@c.TeacherName</td> }
+                    <td>@c.UsesCount@(c.MaxUses is null ? "" : $" / {c.MaxUses}")</td>
+                    <td>@(c.ExpiresAt is null ? "Sem validade" : Format.Date(c.ExpiresAt, Clock.TimeZone))</td>
+                    <td>@(c.IsUsable ? Html.Raw("<span class=\"pill ok\">Válido</span>") : Html.Raw("<span class=\"pill\">Inativo</span>"))</td>
+                    <td class="text-end pe-3">
+                        @if (c.IsActive)
+                        {
+                            <form method="post" action="/admin/codigos/@c.Id/desativar" asp-antiforgery="true"><button class="btn btn-sm btn-outline-danger">Desativar</button></form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="panel mt-3 p-0">
+    <h2 class="px-3 pt-3">Convites por e-mail</h2>
+    <table class="table">
+        <thead><tr><th class="ps-3">E-mail</th><th>Tipo</th><th>Professor</th><th>Criado</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @if (Model.Invites.Count == 0) { <tr><td colspan="6" class="text-center text-secondary py-3">Nenhum convite enviado.</td></tr> }
+            @foreach (var i in Model.Invites)
+            {
+                <tr>
+                    <td class="ps-3">@i.Email</td>
+                    <td>@Format.Role(i.Role)</td>
+                    <td>@(i.TeacherName ?? "—")</td>
+                    <td>@Format.Date(i.CreatedAt, Clock.TimeZone)</td>
+                    <td>@(i.AcceptedAt is null ? Html.Raw("<span class=\"pill warn\">Pendente</span>") : Html.Raw("<span class=\"pill ok\">Aceito</span>"))</td>
+                    <td class="text-end pe-3">
+                        @if (i.AcceptedAt is null)
+                        {
+                            <form method="post" action="/admin/convites/@i.Id/cancelar" asp-antiforgery="true"><button class="btn btn-sm btn-outline-danger">Cancelar</button></form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const role = document.getElementById("invite-role");
+            const teacher = document.getElementById("invite-teacher");
+            if (!role || !teacher) return;
+            const sync = () => { teacher.disabled = role.value === "TEACHER"; teacher.required = role.value === "STUDENT"; };
+            role.addEventListener("change", sync); sync();
+        })();
+    </script>
+}

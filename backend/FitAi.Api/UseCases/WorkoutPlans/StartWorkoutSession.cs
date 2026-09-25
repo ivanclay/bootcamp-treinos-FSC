@@ -21,7 +21,7 @@ public sealed class StartWorkoutSession(AppDbContext db, TimeProvider timeProvid
         var day = await db.WorkoutDays.AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == input.WorkoutDayId && d.WorkoutPlanId == input.WorkoutPlanId, ct)
             ?? throw new NotFoundException("Workout day not found");
-        if (day.IsRest) throw new ValidationException("Rest days cannot be started");
+        if (day.IsRest) throw new ValidationException("Dias de descanso não podem ser iniciados");
 
         // Um treino por dia de calendário (UTC): o mesmo dia do plano pode ser feito de novo na semana seguinte.
         var now = timeProvider.GetUtcNow();

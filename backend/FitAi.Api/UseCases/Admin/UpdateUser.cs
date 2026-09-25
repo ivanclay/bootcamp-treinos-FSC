@@ -24,11 +24,11 @@ public sealed class UpdateUser(AppDbContext db)
 
         if (!isAdmin && (changes.Role is not null || changes.TeacherId is not null || changes.IsBlocked is not null))
         {
-            throw new ForbiddenException("Only admins can change role, teacher or blocked status");
+            throw new ForbiddenException("Somente administradores podem alterar papel, professor ou bloqueio");
         }
         if (user.Id == actor.Id && (changes.Role is { } r && r != actor.Role || changes.IsBlocked == true))
         {
-            throw new ValidationException("You cannot change your own role or block yourself");
+            throw new ValidationException("Você não pode alterar o próprio papel nem se bloquear");
         }
 
         if (changes.Role is { } role)
@@ -45,9 +45,9 @@ public sealed class UpdateUser(AppDbContext db)
             }
             else
             {
-                if (user.Role != UserRole.STUDENT) throw new ValidationException("Only students can be linked to a teacher");
+                if (user.Role != UserRole.STUDENT) throw new ValidationException("Somente alunos podem ser vinculados a um professor");
                 var teacherExists = await db.Users.AnyAsync(u => u.Id == changes.TeacherId && u.Role == UserRole.TEACHER, ct);
-                if (!teacherExists) throw new ValidationException("Teacher not found");
+                if (!teacherExists) throw new ValidationException("Professor não encontrado");
                 user.TeacherId = changes.TeacherId;
             }
         }

@@ -17,18 +17,18 @@ public sealed class RedeemInviteCode(AppDbContext db, TimeProvider timeProvider)
             ?? throw new NotFoundException("User not found");
         if (user.Role != UserRole.STUDENT)
         {
-            throw new ConflictException("Only students can join a teacher");
+            throw new ConflictException("Somente alunos podem se vincular a um professor");
         }
         if (user.TeacherId is not null)
         {
-            throw new ConflictException("You are already linked to a teacher");
+            throw new ConflictException("Você já está vinculado a um professor");
         }
 
         var code = InviteCodeGenerator.Normalize(input.Code);
         var inviteCode = await db.InviteCodes.Include(c => c.Teacher).FirstOrDefaultAsync(c => c.Code == code, ct);
         if (inviteCode is null || !inviteCode.IsUsable(timeProvider.GetUtcNow()) || inviteCode.Teacher.IsBlocked)
         {
-            throw new InvalidInviteCodeException("Invalid or expired invite code");
+            throw new InvalidInviteCodeException("Código de convite inválido ou expirado");
         }
 
         user.TeacherId = inviteCode.TeacherId;

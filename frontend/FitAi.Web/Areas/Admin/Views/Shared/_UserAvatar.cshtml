@@ -1,0 +1,9 @@
+@model AdminUserListItemResponse
+@if (Model.Image is not null)
+{
+    <span class="avatar-sm" style="background-image:url('@Model.Image')"></span>
+}
+else
+{
+    <span class="avatar-sm">@(Model.Name.Length > 0 ? Model.Name[..1].ToUpperInvariant() : "?")</span>
+}

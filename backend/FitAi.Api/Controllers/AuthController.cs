@@ -32,7 +32,7 @@ public sealed class AuthController(IOptions<AuthOptions> authOptions, IWebHostEn
     public IActionResult GoogleLogin([FromQuery] string redirectUri)
     {
         EnsureAllowedRedirect(redirectUri);
-        if (!authOptions.Value.Google.IsConfigured) throw new ValidationException("Google login is not configured");
+        if (!authOptions.Value.Google.IsConfigured) throw new ValidationException("O login com Google não está configurado");
 
         var callback = Url.Action(nameof(GoogleCallback), new { redirectUri })!;
         return Challenge(new AuthenticationProperties { RedirectUri = callback }, GoogleDefaults.AuthenticationScheme);
@@ -113,7 +113,7 @@ public sealed class AuthController(IOptions<AuthOptions> authOptions, IWebHostEn
             redirectUri.Equals(prefix, StringComparison.OrdinalIgnoreCase)
             || redirectUri.StartsWith(prefix.TrimEnd('/') + "/", StringComparison.OrdinalIgnoreCase)
             || redirectUri.StartsWith(prefix + "?", StringComparison.OrdinalIgnoreCase));
-        if (!allowed) throw new ValidationException("redirectUri is not allowed");
+        if (!allowed) throw new ValidationException("redirectUri não permitido");
     }
 
     private static string AppendQuery(string uri, string key, string value) =>

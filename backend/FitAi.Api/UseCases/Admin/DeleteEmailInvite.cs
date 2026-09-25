@@ -18,7 +18,7 @@ public sealed class DeleteEmailInvite(AppDbContext db)
         {
             throw new NotFoundException("Invite not found");
         }
-        if (invite.AcceptedAt is not null) throw new ConflictException("Invite was already accepted");
+        if (invite.AcceptedAt is not null) throw new ConflictException("Este convite já foi aceito");
         db.EmailInvites.Remove(invite);
         await db.SaveChangesAsync(ct);
     }

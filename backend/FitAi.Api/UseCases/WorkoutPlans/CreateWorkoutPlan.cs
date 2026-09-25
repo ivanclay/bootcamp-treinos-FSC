@@ -51,26 +51,26 @@ public static class WorkoutPlanValidator
 {
     public static void Validate(SaveWorkoutPlanRequest plan)
     {
-        if (string.IsNullOrWhiteSpace(plan.Name)) throw new ValidationException("Workout plan name is required");
-        if (plan.WorkoutDays.Count == 0) throw new ValidationException("Workout plan must have at least one day");
+        if (string.IsNullOrWhiteSpace(plan.Name)) throw new ValidationException("Informe o nome do plano");
+        if (plan.WorkoutDays.Count == 0) throw new ValidationException("O plano precisa ter pelo menos um dia");
 
         var duplicated = plan.WorkoutDays.GroupBy(d => d.WeekDay).FirstOrDefault(g => g.Count() > 1);
-        if (duplicated is not null) throw new ValidationException($"Week day {duplicated.Key} appears more than once");
+        if (duplicated is not null) throw new ValidationException($"O dia {duplicated.Key} aparece mais de uma vez");
 
         foreach (var day in plan.WorkoutDays)
         {
-            if (string.IsNullOrWhiteSpace(day.Name)) throw new ValidationException("Workout day name is required");
+            if (string.IsNullOrWhiteSpace(day.Name)) throw new ValidationException("Informe o nome de cada dia");
             if (!day.IsRest && day.Exercises.Count == 0)
             {
-                throw new ValidationException($"Workout day '{day.Name}' must have at least one exercise");
+                throw new ValidationException($"O treino '{day.Name}' precisa de pelo menos um exercício");
             }
             if (!day.IsRest && day.EstimatedDurationInSeconds <= 0)
             {
-                throw new ValidationException($"Workout day '{day.Name}' must have an estimated duration");
+                throw new ValidationException($"Informe a duração do treino '{day.Name}'");
             }
             if (day.Exercises.Any(e => string.IsNullOrWhiteSpace(e.Name) || e.Sets < 1 || e.Reps < 1 || e.RestTimeInSeconds < 0))
             {
-                throw new ValidationException($"Workout day '{day.Name}' has an invalid exercise");
+                throw new ValidationException($"O treino '{day.Name}' tem um exercício inválido (séries e repetições devem ser maiores que zero)");
             }
         }
     }

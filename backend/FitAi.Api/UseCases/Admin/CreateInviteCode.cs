@@ -14,9 +14,9 @@ public sealed class CreateInviteCode(AppDbContext db, TimeProvider timeProvider)
     public async Task<InviteCodeResponse> ExecuteAsync(Input input, CancellationToken ct = default)
     {
         var teacherId = input.Actor.Role == UserRole.ADMIN ? input.Request.TeacherId : input.Actor.Id;
-        if (string.IsNullOrWhiteSpace(teacherId)) throw new ValidationException("teacherId is required");
+        if (string.IsNullOrWhiteSpace(teacherId)) throw new ValidationException("Escolha o professor");
         var teacher = await db.Users.FirstOrDefaultAsync(u => u.Id == teacherId && u.Role == UserRole.TEACHER, ct)
-            ?? throw new ValidationException("Teacher not found");
+            ?? throw new ValidationException("Professor não encontrado");
 
         var now = timeProvider.GetUtcNow();
         string code;
