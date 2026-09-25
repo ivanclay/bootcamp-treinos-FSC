@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/app/">
+    <Project Path="app/FitAi.App/FitAi.App.csproj" />
+  </Folder>
+  <Folder Name="/backend/">
+    <Project Path="backend/FitAi.Api/FitAi.Api.csproj" />
+  </Folder>
+  <Folder Name="/frontend/">
+    <Project Path="frontend/FitAi.Web/FitAi.Web.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/FitAi.Contracts/FitAi.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FitAi.Api.Tests/FitAi.Api.Tests.csproj" />
+  </Folder>
+</Solution>

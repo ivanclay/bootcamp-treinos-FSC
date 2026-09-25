@@ -5,3 +5,17 @@ node_modules
 # Build
 
 dist
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+appsettings.*.local.json
+
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
