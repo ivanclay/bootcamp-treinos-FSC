@@ -68,7 +68,8 @@ public sealed record EmailInviteResponse(
     string? TeacherId,
     string? TeacherName,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? AcceptedAt);
+    DateTimeOffset? AcceptedAt,
+    DateTimeOffset? DeclinedAt = null);
 
 public sealed class CreateEmailInviteRequest
 {

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -6,8 +7,13 @@ using FitAi.Contracts;
 
 namespace FitAi.App.ViewModels;
 
+public sealed record InviteItem(Guid Id, string Title, string Description);
+
 public partial class ProfileViewModel(ApiClient api, AuthService auth) : BaseViewModel
 {
+    /// <summary>Convites de professor aguardando o aceite do aluno.</summary>
+    public ObservableCollection<InviteItem> Invites { get; } = [];
+
     [ObservableProperty] public partial string Name { get; set; } = "";
     [ObservableProperty] public partial string Subtitle { get; set; } = "";
     [ObservableProperty] public partial string? Image { get; set; }
@@ -59,6 +65,30 @@ public partial class ProfileViewModel(ApiClient api, AuthService auth) : BaseVie
         EditHeight = data?.HeightInCentimeters.ToString() ?? "";
         EditBodyFat = data?.BodyFatPercentage.ToString() ?? "";
         EditAge = data?.Age.ToString() ?? "";
+
+        Invites.Clear();
+        foreach (var invite in await api.ListPendingInvitesAsync())
+        {
+            Invites.Add(new InviteItem(invite.Id, $"{invite.TeacherName} quer ser seu professor",
+                $"Ao aceitar, {invite.TeacherName} poderá ver seus dados, planos e treinos, e montar planos para você."));
+        }
+    });
+
+    [RelayCommand]
+    private Task AcceptInviteAsync(InviteItem invite) => RunAsync(async () =>
+    {
+        var link = await api.AcceptInviteAsync(invite.Id);
+        IsBusy = false;
+        await LoadAsync();
+        Message = $"Pronto! Agora você é acompanhado por {link.TeacherName}.";
+    });
+
+    [RelayCommand]
+    private Task DeclineInviteAsync(InviteItem invite) => RunAsync(async () =>
+    {
+        await api.DeclineInviteAsync(invite.Id);
+        Invites.Remove(invite);
+        Message = "Convite recusado.";
     });
 
     [RelayCommand]

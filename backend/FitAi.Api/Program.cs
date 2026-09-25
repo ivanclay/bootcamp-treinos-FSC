@@ -24,6 +24,7 @@ builder.Services.AddOptions<AuthOptions>().Bind(config.GetSection(AuthOptions.Se
     .ValidateOnStart();
 builder.Services.Configure<AiOptions>(config.GetSection(AiOptions.Section));
 builder.Services.Configure<YouTubeOptions>(config.GetSection(YouTubeOptions.Section));
+var rateLimitOptions = config.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions();
 var authOptions = config.GetSection(AuthOptions.Section).Get<AuthOptions>() ?? new AuthOptions();
 
 // ---------- Banco ----------
@@ -123,14 +124,31 @@ builder.Services.AddExceptionHandler<AppExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(o => o.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
+builder.Services.AddFitAiRateLimiting(rateLimitOptions);
+
+// X-Forwarded-* só é confiável atrás de um proxy reverso (ReverseProxy:TrustForwardedHeaders=true).
+// Sem proxy, aceitar esses headers deixaria qualquer cliente forjar IP (e burlar o rate limit) ou esquema.
+var trustForwardedHeaders = config.GetValue<bool>("ReverseProxy:TrustForwardedHeaders");
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    o.ForwardLimit = 1;
     o.KnownIPNetworks.Clear();
     o.KnownProxies.Clear();
 });
 
 var app = builder.Build();
+
+// Segurança: o segredo JWT de desenvolvimento é público (está no repositório); fora de Development ele é recusado.
+if (!app.Environment.IsDevelopment() && authOptions.JwtSecret == AuthOptions.DevelopmentJwtSecret)
+{
+    throw new InvalidOperationException(
+        "Auth:JwtSecret está com o valor de desenvolvimento. Defina um segredo próprio (32+ caracteres) fora de Development.");
+}
+if (app.Environment.IsDevelopment())
+{
+    app.Logger.LogWarning("Rodando em Development: login de desenvolvimento e dados de exemplo podem estar ligados. Não exponha esta instância.");
+}
 
 if (config.GetValue<bool>("Database:MigrateOnStartup"))
 {
@@ -138,13 +156,14 @@ if (config.GetValue<bool>("Database:MigrateOnStartup"))
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
-if (config.GetValue<bool>("Database:SeedDemoData"))
+// Dados de exemplo (com usuários conhecidos) só em Development.
+if (app.Environment.IsDevelopment() && config.GetValue<bool>("Database:SeedDemoData"))
 {
     using var scope = app.Services.CreateScope();
     await DemoDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), TimeProvider.System);
 }
 
-app.UseForwardedHeaders();
+if (trustForwardedHeaders) app.UseForwardedHeaders();
 // Fotos de capa (wwwroot/covers), usadas pela Web e pelo App.
 app.UseStaticFiles();
 app.UseExceptionHandler();
@@ -157,12 +176,17 @@ app.UseStatusCodePages(async context =>
     }
 });
 
-app.MapOpenApi("/swagger.json");
-app.MapScalarApiReference("/docs", o => o
-    .WithTitle("FIT.AI API")
-    .WithOpenApiRoutePattern("/swagger.json"));
+// Referência da API só em Development ou quando habilitada explicitamente (Api:ExposeDocs).
+if (app.Environment.IsDevelopment() || config.GetValue<bool>("Api:ExposeDocs"))
+{
+    app.MapOpenApi("/swagger.json");
+    app.MapScalarApiReference("/docs", o => o
+        .WithTitle("FIT.AI API")
+        .WithOpenApiRoutePattern("/swagger.json"));
+}
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapGet("/", () => Results.Ok(new { message = "FIT.AI API" })).ExcludeFromDescription();

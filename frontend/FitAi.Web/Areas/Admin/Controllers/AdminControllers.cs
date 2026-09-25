@@ -127,9 +127,9 @@ public sealed class InvitesController(ApiClient api) : AdminControllerBase(api)
         try
         {
             var invite = await Api.CreateInviteAsync(new CreateEmailInviteRequest { Email = email, Role = role, TeacherId = teacherId }, ct);
-            Flash(invite.AcceptedAt is not null
-                ? $"{invite.Email} já tinha conta e foi vinculado na hora."
-                : $"Convite criado. Quando {invite.Email} entrar com o Google, o vínculo é feito automaticamente.");
+            Flash(invite.Role == UserRole.TEACHER && invite.AcceptedAt is not null
+                ? $"{invite.Email} já tinha conta e agora é professor."
+                : $"Convite enviado para {invite.Email}. Se a pessoa ainda não tem conta, o vínculo é feito no primeiro login; se já tem, ela precisa aceitar no Perfil.");
         }
         catch (ApiException e) when (e.Code is ErrorCodes.Validation or ErrorCodes.Conflict or ErrorCodes.Forbidden)
         {

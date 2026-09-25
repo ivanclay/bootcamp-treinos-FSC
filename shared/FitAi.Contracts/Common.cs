@@ -17,5 +17,6 @@ public static class ErrorCodes
     public const string InvalidInviteCode = "INVALID_INVITE_CODE";
     public const string ExternalService = "EXTERNAL_SERVICE_ERROR";
     public const string AiNotConfigured = "AI_NOT_CONFIGURED";
+    public const string RateLimited = "RATE_LIMITED";
     public const string Internal = "INTERNAL_SERVER_ERROR";
 }

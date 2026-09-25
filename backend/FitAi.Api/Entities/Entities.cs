@@ -126,6 +126,11 @@ public class EmailInvite : IHasTimestamps
     public User InvitedBy { get; set; } = null!;
     public DateTimeOffset? AcceptedAt { get; set; }
     public string? AcceptedByUserId { get; set; }
+
+    /// <summary>Aluno recusou o convite.</summary>
+    public DateTimeOffset? DeclinedAt { get; set; }
+
+    public bool IsPending => AcceptedAt is null && DeclinedAt is null;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
@@ -157,6 +162,10 @@ public class AuthCode
 
     public string UserId { get; set; } = "";
     public User User { get; set; } = null!;
+
+    /// <summary>Hash PKCE (S256) enviado pelo cliente ao iniciar o login.</summary>
+    public string CodeChallenge { get; set; } = "";
+
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? UsedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

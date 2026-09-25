@@ -14,7 +14,7 @@ public sealed class CoachMessage
     [Required, RegularExpression("^(user|assistant)$")]
     public string Role { get; set; } = "user";
 
-    [Required, MaxLength(8000)]
+    [Required, MaxLength(4000)]
     public string Content { get; set; } = "";
 }
 

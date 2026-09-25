@@ -10,8 +10,8 @@ namespace FitAi.Api.UseCases.Auth;
 
 /// <summary>
 /// Encontra ou cria o usuário do login externo e aplica papéis e convites:
-/// e-mails de <c>Auth:AdminEmails</c> viram ADMIN; convites por e-mail pendentes
-/// promovem a professor ou vinculam o aluno ao professor.
+/// e-mails de <c>Auth:AdminEmails</c> viram ADMIN; convite de professor promove na hora;
+/// convite de aluno só vincula automaticamente contas novas (as existentes precisam aceitar).
 /// </summary>
 public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOptions> authOptions, TimeProvider timeProvider)
 {
@@ -27,6 +27,7 @@ public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOption
         var login = await db.ExternalLogins.Include(l => l.User)
             .FirstOrDefaultAsync(l => l.Provider == input.Provider && l.ProviderKey == input.ProviderKey, ct);
         var user = login?.User ?? await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var isNewUser = user is null;
 
         if (user is null)
         {
@@ -54,16 +55,16 @@ public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOption
         var isConfiguredAdmin = authOptions.Value.AdminEmails.Any(a => string.Equals(a.Trim(), email, StringComparison.OrdinalIgnoreCase));
         if (isConfiguredAdmin) user.Role = UserRole.ADMIN;
 
-        await ApplyPendingInvitesAsync(user, email, ct);
+        await ApplyPendingInvitesAsync(user, email, isNewUser, ct);
 
         await db.SaveChangesAsync(ct);
         return new Output(user.Id);
     }
 
-    private async Task ApplyPendingInvitesAsync(User user, string email, CancellationToken ct)
+    private async Task ApplyPendingInvitesAsync(User user, string email, bool isNewUser, CancellationToken ct)
     {
         var invites = await db.EmailInvites
-            .Where(i => i.Email == email && i.AcceptedAt == null)
+            .Where(i => i.Email == email && i.AcceptedAt == null && i.DeclinedAt == null)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync(ct);
         if (invites.Count == 0) return;
@@ -76,16 +77,20 @@ public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOption
             user.TeacherId = null;
         }
 
-        var studentInvite = invites.FirstOrDefault(i => i.Role == UserRole.STUDENT && i.TeacherId != null);
-        if (studentInvite is not null && user.Role == UserRole.STUDENT && user.TeacherId is null)
+        if (teacherInvite is not null)
         {
-            user.TeacherId = studentInvite.TeacherId;
+            teacherInvite.AcceptedAt = now;
+            teacherInvite.AcceptedByUserId = user.Id;
         }
 
-        foreach (var invite in invites)
+        // Convite de aluno só é aplicado automaticamente para quem está se cadastrando agora (entrou pelo convite).
+        // Quem já tinha conta decide no Perfil se aceita — o professor passa a ver os dados do aluno.
+        var studentInvite = invites.FirstOrDefault(i => i.Role == UserRole.STUDENT && i.TeacherId != null);
+        if (isNewUser && studentInvite is not null && user.Role == UserRole.STUDENT && user.TeacherId is null)
         {
-            invite.AcceptedAt = now;
-            invite.AcceptedByUserId = user.Id;
+            user.TeacherId = studentInvite.TeacherId;
+            studentInvite.AcceptedAt = now;
+            studentInvite.AcceptedByUserId = user.Id;
         }
     }
 }

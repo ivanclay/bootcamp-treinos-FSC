@@ -25,6 +25,10 @@
 </section>
 
 <div class="page">
+    @if (Model.PendingInvites > 0)
+    {
+        <a class="alert info" href="/perfil">@Icons.Get("mail", 16) Você tem @(Model.PendingInvites == 1 ? "um convite" : $"{Model.PendingInvites} convites") de professor. Toque para ver.</a>
+    }
     <section class="stack">
         <div class="section-head">
             <h2>Consistência</h2>

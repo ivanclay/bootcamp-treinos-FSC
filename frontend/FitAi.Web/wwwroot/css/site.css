@@ -280,3 +280,4 @@ img { max-width: 100%; display: block; }
 .center { text-align: center; }
 .error-page { min-height: 70dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; text-align: center; padding: 24px; }
 @media (min-width: 480px) { .app { margin-top: 0; } }
+a.alert { display: flex; gap: 8px; align-items: center; }

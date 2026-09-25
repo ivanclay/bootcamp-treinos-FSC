@@ -34,7 +34,7 @@ public static class Images
 
 public sealed record LoginViewModel(AuthProvidersResponse Providers, string? Error);
 
-public sealed record HomeViewModel(HomeDataResponse Home, string FirstName, DateOnly Today);
+public sealed record HomeViewModel(HomeDataResponse Home, string FirstName, DateOnly Today, int PendingInvites = 0);
 
 public sealed record WorkoutPlanViewModel(WorkoutPlanResponse? Plan);
 
@@ -49,7 +49,7 @@ public sealed record HeatmapMonth(string Label, IReadOnlyList<IReadOnlyList<Heat
 /// <summary>State: "blank" (fora do mês), "none", "started" ou "done".</summary>
 public sealed record HeatmapCell(string Date, string State);
 
-public sealed record ProfileViewModel(CurrentUserResponse User, UserTrainDataResponse? TrainData);
+public sealed record ProfileViewModel(CurrentUserResponse User, UserTrainDataResponse? TrainData, IReadOnlyList<PendingInviteResponse> PendingInvites);
 
 public sealed class EditProfileViewModel
 {

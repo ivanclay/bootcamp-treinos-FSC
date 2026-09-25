@@ -28,6 +28,8 @@ public sealed class SendCoachMessage(
     SearchExerciseVideos searchExerciseVideos,
     ILogger<SendCoachMessage> logger)
 {
+    private const int MaxHistoryMessages = 30;
+
     public sealed record Input(User User, IReadOnlyList<CoachMessage> Messages);
 
     public async Task<CoachChatResponse> ExecuteAsync(Input input, CancellationToken ct = default)
@@ -98,8 +100,9 @@ public sealed class SendCoachMessage(
                 "Cria um novo plano de treino completo para o usuário (7 dias, MONDAY a SUNDAY). O plano anterior é desativado."));
         }
 
+        // Só as últimas mensagens vão para o modelo: limita custo e o tamanho do contexto que um cliente pode forçar.
         var messages = new List<ChatMessage> { new(ChatRole.System, systemPrompt) };
-        messages.AddRange(input.Messages
+        messages.AddRange(input.Messages.TakeLast(MaxHistoryMessages)
             .Where(m => !string.IsNullOrWhiteSpace(m.Content))
             .Select(m => new ChatMessage(m.Role == "assistant" ? ChatRole.Assistant : ChatRole.User, m.Content)));
 

@@ -1,6 +1,7 @@
 namespace FitAi.Contracts;
 
-public sealed record ExchangeAuthCodeRequest(string Code);
+/// <summary>Troca do código de login por um JWT. <c>CodeVerifier</c> é o segredo PKCE criado pelo cliente.</summary>
+public sealed record ExchangeAuthCodeRequest(string Code, string CodeVerifier);
 
 public sealed record DevLoginRequest(string Email, string? Name);
 
