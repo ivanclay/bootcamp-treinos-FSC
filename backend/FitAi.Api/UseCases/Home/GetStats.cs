@@ -1,3 +1,4 @@
+using FitAi.Api.Billing;
 using FitAi.Api.Data;
 using FitAi.Api.Domain;
 using FitAi.Api.Errors;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitAi.Api.UseCases.Home;
 
-public sealed class GetStats(AppDbContext db, TimeProvider timeProvider)
+public sealed class GetStats(AppDbContext db, TimeProvider timeProvider, PlanService planService)
 {
     public sealed record Input(string UserId, DateOnly From, DateOnly To);
 
@@ -19,9 +20,23 @@ public sealed class GetStats(AppDbContext db, TimeProvider timeProvider)
             .FirstOrDefaultAsync(p => p.UserId == input.UserId && p.IsActive, ct)
             ?? throw new NotFoundException("Active workout plan not found");
 
+        // Plano gratuito: histórico limitado aos últimos N dias (os dados continuam salvos).
+        var from = input.From;
+        string? limitedFrom = null;
+        var effective = await planService.GetForUserIdAsync(input.UserId, ct);
+        if (effective.Limits.HistoryDays is { } days)
+        {
+            var earliest = WorkoutStreak.ToUtcDate(timeProvider.GetUtcNow()).AddDays(-(days - 1));
+            if (from < earliest)
+            {
+                from = earliest;
+                limitedFrom = WorkoutStreak.ToKey(earliest);
+            }
+        }
+
         var allSessions = plan.WorkoutDays.SelectMany(d => d.Sessions).ToList();
         var sessions = allSessions
-            .Where(s => WorkoutStreak.ToUtcDate(s.StartedAt) is var date && date >= input.From && date <= input.To)
+            .Where(s => WorkoutStreak.ToUtcDate(s.StartedAt) is var date && date >= from && date <= input.To)
             .ToList();
 
         var consistency = sessions
@@ -46,6 +61,7 @@ public sealed class GetStats(AppDbContext db, TimeProvider timeProvider)
             consistency,
             completed.Count,
             sessions.Count > 0 ? (double)completed.Count / sessions.Count : 0,
-            totalSeconds);
+            totalSeconds,
+            limitedFrom);
     }
 }

@@ -1,3 +1,4 @@
+using FitAi.Api.Billing;
 using FitAi.Api.Data;
 using FitAi.Api.Errors;
 using FitAi.Api.UseCases.Shared;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FitAi.Api.UseCases.Me;
 
 /// <summary>Vincula o aluno ao professor dono do código de convite.</summary>
-public sealed class RedeemInviteCode(AppDbContext db, TimeProvider timeProvider)
+public sealed class RedeemInviteCode(AppDbContext db, TimeProvider timeProvider, PlanService planService)
 {
     public sealed record Input(string UserId, string Code);
 
@@ -31,6 +32,7 @@ public sealed class RedeemInviteCode(AppDbContext db, TimeProvider timeProvider)
             throw new InvalidInviteCodeException("Código de convite inválido ou expirado");
         }
 
+        await planService.EnsureTeacherCanAddStudentAsync(inviteCode.TeacherId, countPendingInvites: false, ct);
         user.TeacherId = inviteCode.TeacherId;
         inviteCode.UsesCount++;
         await db.SaveChangesAsync(ct);

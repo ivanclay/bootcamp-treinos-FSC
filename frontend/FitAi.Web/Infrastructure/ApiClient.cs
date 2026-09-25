@@ -50,6 +50,15 @@ public sealed class ApiClient(HttpClient http, IConfiguration configuration)
     public Task<WorkoutSessionResponse> CompleteSessionAsync(Guid planId, Guid dayId, Guid sessionId, CancellationToken ct) => Send<WorkoutSessionResponse>(HttpMethod.Patch, $"workout-plans/{planId}/days/{dayId}/sessions/{sessionId}", new CompleteWorkoutSessionRequest { CompletedAt = DateTimeOffset.UtcNow }, ct);
     public Task<CoachChatResponse> SendCoachMessageAsync(CoachChatRequest body, CancellationToken ct) => Send<CoachChatResponse>(HttpMethod.Post, "coach/chat", body, ct);
 
+    public Task<MyPlanResponse> GetMyPlanAsync(CancellationToken ct) => Get<MyPlanResponse>("me/plan", ct);
+
+    // ---------- Assinatura (professor) ----------
+    public Task<BillingStatusResponse> GetBillingAsync(CancellationToken ct) => Get<BillingStatusResponse>("admin/billing", ct);
+    public Task<CheckoutResponse> CheckoutAsync(CheckoutRequest body, CancellationToken ct) => Send<CheckoutResponse>(HttpMethod.Post, "admin/billing/checkout", body, ct);
+    public Task<CheckoutResponse> GetPendingPaymentAsync(CancellationToken ct) => Get<CheckoutResponse>("admin/billing/pending", ct);
+    public Task<SubscriptionResponse> CancelSubscriptionAsync(CancellationToken ct) => Send<SubscriptionResponse>(HttpMethod.Post, "admin/billing/cancel", null, ct);
+    public Task SimulatePaymentAsync(CancellationToken ct) => Send<object?>(HttpMethod.Post, "admin/billing/simulate-payment", null, ct);
+
     // ---------- Admin ----------
     public Task<AdminDashboardResponse> GetDashboardAsync(CancellationToken ct) => Get<AdminDashboardResponse>("admin/dashboard", ct);
 

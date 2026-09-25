@@ -1,3 +1,4 @@
+using FitAi.Api.Billing;
 using FitAi.Api.Data;
 using FitAi.Api.Entities;
 using FitAi.Api.Errors;
@@ -10,7 +11,7 @@ namespace FitAi.Api.UseCases.Admin;
 /// Convite por e-mail. Professor convida alunos para si; admin convida professores ou alunos para um professor.
 /// Professor convidado que já tem conta é promovido na hora; aluno que já tem conta precisa aceitar o convite.
 /// </summary>
-public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider)
+public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider, PlanService planService)
 {
     public sealed record Input(User Actor, CreateEmailInviteRequest Invite);
 
@@ -36,6 +37,8 @@ public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider
         var pendingDuplicate = await db.EmailInvites.AnyAsync(
             i => i.Email == email && i.AcceptedAt == null && i.DeclinedAt == null && i.Role == role && i.TeacherId == teacherId, ct);
         if (pendingDuplicate) throw new ConflictException("Já existe um convite pendente para este e-mail");
+
+        if (teacherId is not null) await planService.EnsureTeacherCanAddStudentAsync(teacherId, countPendingInvites: true, ct);
 
         var invite = new EmailInvite { Email = email, Role = role, TeacherId = teacherId, InvitedById = actor.Id };
 

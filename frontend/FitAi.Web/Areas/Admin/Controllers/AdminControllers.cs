@@ -23,7 +23,11 @@ public abstract class AdminControllerBase(ApiClient api) : Controller
 public sealed class DashboardController(ApiClient api) : AdminControllerBase(api)
 {
     [HttpGet("/admin")]
-    public async Task<IActionResult> Index(CancellationToken ct) => View(await Api.GetDashboardAsync(ct));
+    public async Task<IActionResult> Index(CancellationToken ct)
+    {
+        if (User.Role() == UserRole.TEACHER) ViewData["Billing"] = await Api.GetBillingAsync(ct);
+        return View(await Api.GetDashboardAsync(ct));
+    }
 }
 
 public sealed class UsersController(ApiClient api) : AdminControllerBase(api)
@@ -131,7 +135,7 @@ public sealed class InvitesController(ApiClient api) : AdminControllerBase(api)
                 ? $"{invite.Email} já tinha conta e agora é professor."
                 : $"Convite enviado para {invite.Email}. Se a pessoa ainda não tem conta, o vínculo é feito no primeiro login; se já tem, ela precisa aceitar no Perfil.");
         }
-        catch (ApiException e) when (e.Code is ErrorCodes.Validation or ErrorCodes.Conflict or ErrorCodes.Forbidden)
+        catch (ApiException e) when (e.Code is ErrorCodes.Validation or ErrorCodes.Conflict or ErrorCodes.Forbidden or ErrorCodes.PlanLimitReached)
         {
             FlashError(ErrorMessages.For(e));
         }

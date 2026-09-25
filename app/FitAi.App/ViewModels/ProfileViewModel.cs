@@ -31,6 +31,8 @@ public partial class ProfileViewModel(ApiClient api, AuthService auth) : BaseVie
     [ObservableProperty] public partial string EditBodyFat { get; set; } = "";
     [ObservableProperty] public partial string EditAge { get; set; } = "";
     [ObservableProperty] public partial string? Message { get; set; }
+    [ObservableProperty] public partial bool IsFreePlan { get; set; }
+    [ObservableProperty] public partial string PlanUsage { get; set; } = "";
 
     public bool HasMessage => Message is not null;
 
@@ -50,9 +52,17 @@ public partial class ProfileViewModel(ApiClient api, AuthService auth) : BaseVie
     {
         var user = await auth.RefreshUserAsync();
         var data = await api.GetTrainDataAsync();
+        var plan = await api.GetMyPlanAsync();
+        var planName = plan.Plan == PlanType.PRO ? "Plano Pro" : "Plano Básico";
         Name = user.Name;
-        Subtitle = user.TeacherName is not null ? $"Professor: {user.TeacherName}"
-            : user.Role switch { UserRole.ADMIN => "Admin", UserRole.TEACHER => "Professor", _ => "Aluno" };
+        // Assinatura é feita pelo professor na Web; o app só mostra o plano (política da Google Play).
+        Subtitle = planName + (user.TeacherName is not null ? $" · Professor: {user.TeacherName}"
+            : user.Role switch { UserRole.ADMIN => " · Admin", UserRole.TEACHER => " · Professor", _ => "" });
+        IsFreePlan = plan.Plan == PlanType.FREE && plan.Limits.CoachMessagesPerMonth is not null;
+        PlanUsage = plan.Limits.CoachMessagesPerMonth is { } coachLimit
+            ? $"Coach AI este mês: {Math.Min(plan.CoachMessagesUsedThisMonth, coachLimit)} de {coachLimit} mensagens"
+              + (plan.Limits.AiPlansPerMonth is { } aiLimit ? $"\nPlanos montados pela IA: {Math.Min(plan.AiPlansCreatedThisMonth, aiLimit)} de {aiLimit}" : "")
+            : "";
         Image = user.Image;
         Initial = user.Name.Length > 0 ? user.Name[..1].ToUpperInvariant() : "?";
         ShowInvite = user is { Role: UserRole.STUDENT, TeacherId: null };

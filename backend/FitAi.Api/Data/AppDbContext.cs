@@ -15,6 +15,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, TimeProvider t
     public DbSet<InviteCode> InviteCodes => Set<InviteCode>();
     public DbSet<AuthCode> AuthCodes => Set<AuthCode>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<PaymentRecord> PaymentRecords => Set<PaymentRecord>();
+    public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();
+    public DbSet<UsageCounter> UsageCounters => Set<UsageCounter>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder builder)
     {
@@ -87,6 +91,35 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, TimeProvider t
         {
             e.HasIndex(c => c.CodeHash).IsUnique();
             e.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Subscription>(e =>
+        {
+            e.HasIndex(s => s.TeacherId).IsUnique();
+            e.HasIndex(s => s.ProviderSubscriptionId).IsUnique();
+            e.Property(s => s.Price).HasPrecision(10, 2);
+            e.HasOne(s => s.Teacher).WithMany().HasForeignKey(s => s.TeacherId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<PaymentRecord>(e =>
+        {
+            e.HasIndex(p => p.ProviderPaymentId).IsUnique();
+            e.Property(p => p.Value).HasPrecision(10, 2);
+            e.HasOne(p => p.Subscription).WithMany(s => s.Payments).HasForeignKey(p => p.SubscriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<WebhookEvent>(e =>
+        {
+            e.HasKey(w => w.Id);
+            e.Property(w => w.Id).HasMaxLength(100);
+        });
+
+        b.Entity<UsageCounter>(e =>
+        {
+            e.HasKey(u => new { u.UserId, u.Period, u.Kind });
+            e.Property(u => u.Period).HasMaxLength(7);
+            e.Property(u => u.Kind).HasMaxLength(40);
         });
 
         b.Entity<AppSetting>(e =>

@@ -35,17 +35,11 @@ As telas do aluno são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoje
 | Web — aluno | Login, onboarding/chat, Home, Plano, Treino do dia (iniciar/concluir), Evolução, Perfil (dados e código de convite) | ✅ Entregue |
 | Web — `/admin` | Painel, alunos/professores, detalhe do aluno, editor de planos, convites e códigos, configurações do Coach AI | ✅ Entregue |
 | App MAUI (Android) | Login com Google, Home, Plano, Treino do dia, Coach AI, Evolução, Perfil | ✅ Código entregue — compilação validada no alvo `net10.0`; o APK precisa ser gerado com o Android SDK (Visual Studio/Rider) |
-| Testes | xUnit: sequência, validação de plano, códigos de convite, prompt do Coach, PKCE, URLs de capa e sanitização do markdown do chat | ✅ 45 testes |
+| Assinatura Pro | Professor assina na Web (PIX, boleto ou cartão via Asaas); alunos herdam o plano; limites do plano gratuito; webhook idempotente | ✅ Entregue e testada com o provedor *Fake* ponta a ponta — **falta a verificação no sandbox real do Asaas** ([veja como](#verificação-no-sandbox-do-asaas)) |
+| Testes | xUnit: sequência, planos, convites, Coach, PKCE, capas, markdown do chat, CPF/CNPJ, plano efetivo, webhook e cliente Asaas | ✅ 84 testes |
 
-**Ainda não feito:** resposta do Coach em streaming (hoje a resposta chega inteira), refresh token (o JWT dura 7 dias e depois pede login de novo), assinatura ("Plano Básico").
+**Ainda não feito:** resposta do Coach em streaming (hoje a resposta chega inteira), refresh token (o JWT dura 7 dias e depois pede login de novo), compra dentro do app Android (a assinatura é feita na Web).
 
---- | --- | --- |
-| Scaffold | Solution `FitAi.slnx`, projetos criados, código Node.js removido | ✅ Entregue |
-| Contracts | DTOs compartilhados em `shared/FitAi.Contracts` | ✅ Entregue |
-| API | Entidades, EF Core + migrations, autenticação, papéis, convites, use cases, controllers, Coach AI | 🚧 Em andamento |
-| Web | Telas do aluno + área `/admin` | ⏳ Pendente |
-| App | MAUI Android | ⏳ Pendente |
-| Testes | xUnit (sequência, use cases) | ⏳ Pendente |
 
 ---
 
@@ -147,6 +141,9 @@ As chaves ficam só na configuração (User Secrets / variáveis de ambiente); n
 | `POST` · `PUT` · `DELETE` | `/admin/users/{id}/workout-plans` · `/admin/workout-plans/{id}` | Planos dos alunos |
 | `GET` · `POST` · `DELETE` | `/admin/invites` · `/admin/invite-codes` | Convites |
 | `GET` · `PUT` | `/admin/ai-settings` | Configurações do Coach AI |
+| `GET` | `/me/plan` | Plano efetivo e uso do mês (Perfil) |
+| `GET` · `POST` | `/admin/billing` · `/admin/billing/checkout` · `/admin/billing/pending` · `/admin/billing/cancel` | Assinatura do professor |
+| `POST` | `/webhooks/asaas` | Avisos de pagamento do Asaas (token no cabeçalho `asaas-access-token`) |
 
 ### Modelo de dados
 
@@ -164,6 +161,47 @@ Peso em **gramas**, altura em **centímetros**, gordura corporal em **inteiro de
 | `InviteCodes` | Códigos de convite do professor (validade, limite de usos, ativo) |
 | `AuthCodes` | Códigos de uso único do login |
 | `AppSettings` | Configurações editáveis no painel (Coach AI) |
+| `Subscriptions` | Assinatura do professor (uma por professor): ciclo, forma, status, preço, validade, ids do Asaas |
+| `PaymentRecords` | Espelho das cobranças do Asaas (valor, vencimento, status, fatura) |
+| `WebhookEvents` | Ids dos avisos já processados (idempotência) |
+| `UsageCounters` | Uso mensal por usuário (mensagens ao Coach AI) |
+
+---
+
+## 💳 Assinatura e pagamentos
+
+O **professor** assina o plano **Pro** e todos os alunos dele herdam o plano. A compra é feita **só na Web** (`/admin/assinatura`): o app Android apenas mostra o plano, porque a política da Google Play exige o sistema de cobrança da própria Google para vender assinaturas digitais dentro do app.
+
+| | Básico (gratuito) | Pro |
+| --- | --- | --- |
+| Alunos por professor | 5 (contando convites pendentes) | ilimitados |
+| Mensagens ao Coach AI por aluno | 30 por mês | ilimitadas |
+| Planos montados pela IA por aluno | 1 por mês | ilimitados |
+| Histórico de evolução | últimos 30 dias | completo |
+| Preço | R$ 0 | R$ 29,90/mês ou R$ 299/ano |
+
+Limites e preços ficam em `Plans` no `appsettings.json` da API (ajuste sem mexer no código). Aluno sem professor fica no gratuito; admin não tem limites. Voltar ao gratuito **não apaga nada** — só bloqueia passar dos limites.
+
+**Como funciona** (arquitetura do guia de integração com o Asaas):
+
+- **O servidor nunca vê dados de cartão.** PIX mostra o QR gerado pelo Asaas; cartão e boleto são pagos na fatura hospedada do Asaas.
+- **O preço vem da configuração**, nunca do formulário. CPF/CNPJ é validado pelos dígitos verificadores.
+- **O webhook é a fonte da verdade:** `POST /webhooks/asaas` confirma o pagamento; o botão "Já paguei" só confere. O token é comparado em tempo constante (token vazio rejeita tudo) e cada aviso é **reivindicado de forma atômica** antes de qualquer efeito — reenvios e entregas simultâneas têm efeito uma vez só.
+- **Plano efetivo calculado** a cada consulta: pendente = gratuito; ativo até o fim do período + 7 dias de carência; cancelado vale até o fim do período pago.
+- **Provedor por configuração:** `Payments:Provider=Fake` (padrão, em memória, para desenvolvimento) ou `Asaas`. No Fake, em Development, a tela de pagamento tem um botão **"Simular pagamento confirmado"**, que aplica o mesmo aviso que o Asaas mandaria.
+
+Para testar localmente: entre como `professor@fitai.local` → **Assinatura** → CPF de teste `529.982.247-25` → **Continuar** → **Simular pagamento confirmado**.
+
+<a id="verificação-no-sandbox-do-asaas"></a>
+**Verificação no sandbox do Asaas (antes de produção):** a integração real foi testada só com respostas simuladas da API, porque a rede usada no desenvolvimento bloqueava o Asaas.
+
+1. Crie uma conta no **sandbox** do Asaas e gere a chave de API.
+2. Configure `Payments__Provider=Asaas`, `Asaas__ApiKey=<chave do sandbox>` e `Asaas__WebhookToken=<um segredo seu>` (variáveis de ambiente ou `.env`).
+3. Exponha a API com HTTPS (ex.: um túnel) e cadastre o webhook no painel do Asaas: URL `https://<host>/webhooks/asaas`, token = `Asaas__WebhookToken`, eventos de **cobranças** e **assinaturas**.
+4. Assine com PIX, confirme o pagamento pelo painel do sandbox e veja o plano virar Pro. Repita com cartão (os eventos `PAYMENT_CONFIRMED` e depois `PAYMENT_RECEIVED` devem estender o período uma vez só) e com boleto.
+5. Cancele pela tela e confira que o Pro continua até o fim do período.
+6. Confira nos logs que não aparece chave nem CPF/CNPJ.
+7. Só então use a chave de produção e `Asaas__BaseUrl=https://api.asaas.com/v3/`.
 
 ---
 
@@ -210,6 +248,11 @@ FITAI_ADMIN_EMAIL=seu-email@gmail.com   # vira Admin
 GOOGLE_CLIENT_ID=...                    # login com Google (redirect URI: http://localhost:8080/auth/google/signin)
 GOOGLE_CLIENT_SECRET=...
 YOUTUBE_API_KEY=...                     # vídeos no chat; sem ela o Coach indica um link de busca
+# pagamentos reais (sem isto, o provedor Fake é usado)
+PAYMENTS_PROVIDER=Asaas
+ASAAS_API_KEY=...                       # chave do sandbox ou de produção
+ASAAS_WEBHOOK_TOKEN=...                 # o mesmo token cadastrado no webhook do painel do Asaas
+ASAAS_BASE_URL=https://api-sandbox.asaas.com/v3/
 ```
 
 Comandos úteis: `docker compose --profile full logs -f api` (logs), `docker compose --profile full down` (parar) e `docker compose --profile full down -v` (parar e **apagar o banco**, recriando os dados de exemplo na próxima subida). Se a porta 5432, 8080 ou 3000 já estiver em uso na sua máquina, pare o serviço que a ocupa ou ajuste o `ports` no `docker-compose.yml`.
@@ -245,6 +288,12 @@ Prints gerados com os dados de exemplo. As fotos ficam no próprio projeto (`bac
 | Convites e códigos | Configurações do Coach AI (admin) |
 | --- | --- |
 | <img src="docs/screenshots/13-admin-convites.png" width="420"> | <img src="docs/screenshots/14-admin-coach-ai.png" width="420"> |
+
+**Assinatura do professor (provedor Fake)**
+
+| Planos e checkout | Pagamento PIX | Plano Pro ativo |
+| --- | --- | --- |
+| <img src="docs/screenshots/15-admin-assinatura.png" width="280"> | <img src="docs/screenshots/16-admin-pagamento-pix.png" width="280"> | <img src="docs/screenshots/17-admin-plano-pro.png" width="280"> |
 
 ---
 

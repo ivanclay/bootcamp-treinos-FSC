@@ -2,6 +2,7 @@ using System.ClientModel;
 using System.ComponentModel;
 using System.Text.Json;
 using FitAi.Api.Ai;
+using FitAi.Api.Billing;
 using FitAi.Api.Data;
 using FitAi.Api.Entities;
 using FitAi.Api.Errors;
@@ -26,6 +27,7 @@ public sealed class SendCoachMessage(
     ListWorkoutPlans listWorkoutPlans,
     CreateWorkoutPlan createWorkoutPlan,
     SearchExerciseVideos searchExerciseVideos,
+    PlanService planService,
     ILogger<SendCoachMessage> logger)
 {
     private const int MaxHistoryMessages = 30;
@@ -35,6 +37,21 @@ public sealed class SendCoachMessage(
     public async Task<CoachChatResponse> ExecuteAsync(Input input, CancellationToken ct = default)
     {
         var user = input.User;
+        // Plano gratuito: mensagens por mês (consumo atômico; devolvido se a IA falhar).
+        await planService.ConsumeCoachMessageAsync(user, ct);
+        try
+        {
+            return await ReplyAsync(user, input.Messages, ct);
+        }
+        catch (Exception e) when (e is AiNotConfiguredException or ExternalServiceException or OperationCanceledException)
+        {
+            await planService.RefundCoachMessageAsync(user, CancellationToken.None);
+            throw;
+        }
+    }
+
+    private async Task<CoachChatResponse> ReplyAsync(User user, IReadOnlyList<CoachMessage> inputMessages, CancellationToken ct)
+    {
         var settings = await settingsStore.GetAsync(ct);
         var teacherName = user.TeacherId is null
             ? null
@@ -102,7 +119,7 @@ public sealed class SendCoachMessage(
 
         // Só as últimas mensagens vão para o modelo: limita custo e o tamanho do contexto que um cliente pode forçar.
         var messages = new List<ChatMessage> { new(ChatRole.System, systemPrompt) };
-        messages.AddRange(input.Messages.TakeLast(MaxHistoryMessages)
+        messages.AddRange(inputMessages.TakeLast(MaxHistoryMessages)
             .Where(m => !string.IsNullOrWhiteSpace(m.Content))
             .Select(m => new ChatMessage(m.Role == "assistant" ? ChatRole.Assistant : ChatRole.User, m.Content)));
 
@@ -112,14 +129,22 @@ public sealed class SendCoachMessage(
         {
             response = await client.GetResponseAsync(messages, new ChatOptions { Tools = tools }, ct);
         }
-        catch (ClientResultException e)
+        catch (Exception e) when (IsProviderFailure(e))
         {
             logger.LogError(e, "AI provider {Provider} request failed", settings.Provider);
-            throw new ExternalServiceException($"AI provider request failed (status {e.Status})");
+            throw new ExternalServiceException("O Coach AI não conseguiu responder agora. Tente de novo em instantes.");
         }
 
         return new CoachChatResponse(response.Text, videos, workoutPlanChanged);
     }
+
+    /// <summary>Falha do provedor de IA (HTTP/rede), inclusive depois das novas tentativas automáticas do SDK.</summary>
+    private static bool IsProviderFailure(Exception e) => e switch
+    {
+        ClientResultException or HttpRequestException => true,
+        AggregateException aggregate => aggregate.InnerExceptions.All(IsProviderFailure),
+        _ => false,
+    };
 
     public sealed class UpdateTrainDataArgs
     {

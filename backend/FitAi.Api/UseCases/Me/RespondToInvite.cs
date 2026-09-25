@@ -1,3 +1,4 @@
+using FitAi.Api.Billing;
 using FitAi.Api.Data;
 using FitAi.Api.Errors;
 using FitAi.Contracts;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FitAi.Api.UseCases.Me;
 
 /// <summary>Aluno aceita (vincula-se ao professor) ou recusa um convite enviado para o e-mail dele.</summary>
-public sealed class RespondToInvite(AppDbContext db, TimeProvider timeProvider)
+public sealed class RespondToInvite(AppDbContext db, TimeProvider timeProvider, PlanService planService)
 {
     public sealed record Input(string UserId, Guid InviteId, bool Accept);
 
@@ -33,6 +34,7 @@ public sealed class RespondToInvite(AppDbContext db, TimeProvider timeProvider)
         if (user.TeacherId is not null) throw new ConflictException("Você já está vinculado a um professor");
         if (invite.Teacher.IsBlocked || invite.Teacher.Role != UserRole.TEACHER) throw new NotFoundException("Invite not found");
 
+        await planService.EnsureTeacherCanAddStudentAsync(invite.TeacherId!, countPendingInvites: false, ct);
         user.TeacherId = invite.TeacherId;
         invite.AcceptedAt = now;
         invite.AcceptedByUserId = user.Id;

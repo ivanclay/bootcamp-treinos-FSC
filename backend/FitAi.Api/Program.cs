@@ -24,6 +24,9 @@ builder.Services.AddOptions<AuthOptions>().Bind(config.GetSection(AuthOptions.Se
     .ValidateOnStart();
 builder.Services.Configure<AiOptions>(config.GetSection(AiOptions.Section));
 builder.Services.Configure<YouTubeOptions>(config.GetSection(YouTubeOptions.Section));
+builder.Services.Configure<PlanOptions>(config.GetSection(PlanOptions.Section));
+builder.Services.Configure<PaymentsOptions>(config.GetSection(PaymentsOptions.Section));
+builder.Services.Configure<AsaasOptions>(config.GetSection(AsaasOptions.Section));
 var rateLimitOptions = config.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions();
 var authOptions = config.GetSection(AuthOptions.Section).Get<AuthOptions>() ?? new AuthOptions();
 
@@ -103,6 +106,19 @@ foreach (var type in typeof(Program).Assembly.GetTypes()
 }
 builder.Services.AddHttpClient<SearchExerciseVideos>(c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddScoped<AiSettingsStore>();
+builder.Services.AddScoped<FitAi.Api.Billing.PlanService>();
+builder.Services.AddScoped<FitAi.Api.Billing.PendingPaymentLoader>();
+
+// Provedor de pagamento: Fake (em memória) por padrão; Asaas com Payments:Provider=Asaas.
+var paymentsOptions = config.GetSection(PaymentsOptions.Section).Get<PaymentsOptions>() ?? new PaymentsOptions();
+if (paymentsOptions.IsFake)
+{
+    builder.Services.AddSingleton<FitAi.Api.Payments.IPaymentGateway, FitAi.Api.Payments.FakePaymentGateway>();
+}
+else
+{
+    builder.Services.AddHttpClient<FitAi.Api.Payments.IPaymentGateway, FitAi.Api.Payments.AsaasPaymentGateway>();
+}
 builder.Services.AddSingleton<ChatClientFactory>();
 
 // ---------- MVC, erros e OpenAPI ----------
@@ -144,6 +160,10 @@ if (!app.Environment.IsDevelopment() && authOptions.JwtSecret == AuthOptions.Dev
 {
     throw new InvalidOperationException(
         "Auth:JwtSecret está com o valor de desenvolvimento. Defina um segredo próprio (32+ caracteres) fora de Development.");
+}
+if (!app.Environment.IsDevelopment() && paymentsOptions.IsFake)
+{
+    app.Logger.LogWarning("Payments:Provider=Fake fora de Development: nenhuma cobrança real será feita.");
 }
 if (app.Environment.IsDevelopment())
 {

@@ -1,3 +1,4 @@
+using FitAi.Api.Billing;
 using FitAi.Api.Data;
 using FitAi.Api.Entities;
 using FitAi.Api.Errors;
@@ -11,7 +12,7 @@ namespace FitAi.Api.UseCases.WorkoutPlans;
 /// Cria um plano e o torna o plano ativo do aluno, desativando o anterior.
 /// Usado pelo Coach AI (origem AI) e pelo professor no painel (origem TEACHER).
 /// </summary>
-public sealed class CreateWorkoutPlan(AppDbContext db)
+public sealed class CreateWorkoutPlan(AppDbContext db, PlanService planService)
 {
     public sealed record Input(string UserId, SaveWorkoutPlanRequest Plan, WorkoutPlanSource Source, string CreatedById);
 
@@ -19,8 +20,20 @@ public sealed class CreateWorkoutPlan(AppDbContext db)
     {
         WorkoutPlanValidator.Validate(input.Plan);
 
-        var userExists = await db.Users.AnyAsync(u => u.Id == input.UserId, ct);
-        if (!userExists) throw new NotFoundException("User not found");
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == input.UserId, ct)
+            ?? throw new NotFoundException("User not found");
+
+        // Plano gratuito: limite de planos gerados pela IA por mês (planos do professor não contam).
+        if (input.Source == WorkoutPlanSource.AI)
+        {
+            var effectivePlan = await planService.GetForUserAsync(user, ct);
+            if (effectivePlan.Limits.AiPlansPerMonth is { } limit && await planService.CountAiPlansThisMonthAsync(user.Id, ct) >= limit)
+            {
+                throw new PlanLimitException(
+                    $"No plano gratuito a IA monta até {limit} plano(s) de treino por mês. " +
+                    "O professor pode montar planos sem limite, ou assinar o Pro para liberar a IA.");
+            }
+        }
 
         // Um único SaveChanges: desativar o plano atual e criar o novo acontecem na mesma transação.
         var activePlans = await db.WorkoutPlans.Where(p => p.UserId == input.UserId && p.IsActive).ToListAsync(ct);
