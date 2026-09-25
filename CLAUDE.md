@@ -4,55 +4,63 @@ Este arquivo orienta o Claude Code (claude.ai/code) ao trabalhar com o codigo de
 
 ## Visao Geral
 
-API de treinos construida com Fastify 5, TypeScript, Prisma 7 e Better-Auth. Roda em Node.js 24.x com pnpm 10.30.0 (ambos obrigatorios via `engine-strict`).
+FIT.AI em .NET 10: API REST (ASP.NET Core com controllers), front-end web (ASP.NET Core MVC com Razor Views, incluindo a area administrativa `/admin`) e app Android (.NET MAUI). Banco PostgreSQL via EF Core. Coach AI com `Microsoft.Extensions.AI` (OpenAI por padrao, provedor configuravel).
+
+## Projetos
+
+| Pasta | Projeto | Papel |
+| --- | --- | --- |
+| `backend/FitAi.Api` | ASP.NET Core Web API | Regras de negocio, banco, autenticacao, Coach AI |
+| `frontend/FitAi.Web` | ASP.NET Core MVC | Telas do aluno + Area `Admin` (professor/admin); consome a API via HTTP |
+| `app/FitAi.App` | .NET MAUI (Android) | App do aluno; consome a API via HTTP |
+| `shared/FitAi.Contracts` | Class library | DTOs de request/response e enums compartilhados |
+| `tests/FitAi.Api.Tests` | xUnit | Testes da API |
 
 ## Comandos
 
 ```bash
-# Iniciar servidor de desenvolvimento (hot-reload na porta 8081)
-pnpm dev
+# PostgreSQL
+docker compose up -d
 
-# Iniciar PostgreSQL
-docker-compose up -d
+# API (http://localhost:8080, docs em /docs) — aplica migrations no startup em Development
+dotnet run --project backend/FitAi.Api
 
-# Migrations do Prisma
-pnpm exec prisma migrate dev
-pnpm exec prisma generate
+# Web (http://localhost:3000)
+dotnet run --project frontend/FitAi.Web
 
-# Lint
-pnpm exec eslint .
+# Testes
+dotnet test tests/FitAi.Api.Tests
 
-# Formatacao
-pnpm exec prettier --write .
+# Nova migration (requer: dotnet tool install --global dotnet-ef)
+dotnet ef migrations add <Nome> --project backend/FitAi.Api -o Data/Migrations
+
+# App: abrir app/FitAi.App no Visual Studio/Rider com o workload maui-android e o Android SDK.
+# Checagem de compilacao sem Android SDK (valida C# e bindings do XAML):
+dotnet build app/FitAi.App -p:TargetFrameworks=net10.0 -p:OutputType=Library -p:MauiXamlInflator=XamlC
 ```
 
-Nao ha script de build ou teste configurado ainda. TypeScript compila para `./dist` via `tsc`.
+## Arquitetura da API
 
-## Arquitetura
+### Camadas: Controllers → Use Cases → EF Core
 
-### Padrao em camadas: Routes → Use Cases → Prisma
+- **Controllers** (`Controllers/`) — Validam a entrada (DataAnnotations nos DTOs de `FitAi.Contracts`), obtem o usuario autenticado via `ICurrentUser` e chamam **um** use case. Nenhuma regra de negocio.
+- **Use Cases** (`UseCases/<Area>/`) — Uma classe por caso de uso, nomeada com verbo, com `ExecuteAsync(Input)`. Recebem `AppDbContext` por injecao, falam direto com o EF Core e devolvem DTOs de `FitAi.Contracts` (nunca entidades). Registrados automaticamente no DI (`Program.cs`).
+- **Entities** (`Entities/`) e **Data** (`Data/AppDbContext.cs`, `Data/Migrations/`) — Modelo do EF Core. Enums salvos como texto.
+- **Errors** (`Errors/`) — Excecoes de negocio (`NotFoundException`, `ConflictException`...) convertidas em `{ error, code }` pelo `AppExceptionHandler`.
+- **Domain** (`Domain/WorkoutStreak.cs`) — Calculo puro da sequencia.
+- **Ai** (`Ai/`) — Prompt, fabrica de `IChatClient` por provedor e configuracoes editaveis no painel.
 
-- **Routes** (`src/routes/`) — Handlers de rotas Fastify. Registram schemas Zod para validacao de request/response via `fastify-type-provider-zod`. Extraem sessao de autenticacao e definem status HTTP.
-- **Use Cases** (`src/usecases/`) — Classes de logica de negocio. Recebem DTOs, usam transacoes Prisma para atomicidade (ex: desativar planos ativos antes de criar novos). Uma classe por caso de uso.
-- **Schemas** (`src/schemas/`) — Schemas Zod compartilhados entre rotas e OpenAPI docs. Definem tanto validacao de entrada quanto formato de resposta.
-- **Errors** (`src/errors/`) — Classes de erro customizadas (ex: `NotFoundError`) usadas nos use cases e tratadas nas rotas.
+### Autenticacao e papeis
 
-### Autenticacao
+Login Google feito pela API → redirect para o cliente com codigo de uso unico → `POST /auth/token` devolve um JWT. Papeis: `ADMIN` (e-mails em `Auth:AdminEmails`), `TEACHER` e `STUDENT`. Papel e bloqueio sao lidos do banco a cada requisicao (`ICurrentUser`, `RequireRolesAttribute`). Professor so enxerga os proprios alunos (`StudentAccess`). Em Development existe `POST /auth/dev-login`.
 
-Better-Auth com adaptador Prisma (`src/lib/auth.ts`). Rotas de auth em `/api/auth/*`. Autenticacao baseada em sessao — rotas extraem a sessao do usuario via `auth.api.getSession()`.
+### Web
 
-### Banco de Dados
-
-PostgreSQL 16 via Docker. Prisma client inicializado em `src/lib/db.ts`. Tipos gerados em `src/generated/prisma/` (gitignored). Schema em `prisma/schema.prisma`.
-
-### Documentacao da API
-
-Swagger JSON em `/swagger.json`, Scalar UI em `/docs`. Endpoints de auth sao mesclados no spec OpenAPI via plugin do Better-Auth.
+Cookie de login guarda o JWT (claim `access_token`); `ApiClient` + `BearerTokenHandler` chamam a API. Erros da API viram paginas amigaveis (`ApiExceptionFilter`). Area administrativa em `Areas/Admin` (Bootstrap); telas do aluno com CSS proprio (`wwwroot/css/site.css`).
 
 ## Convencoes
 
-- **TypeScript strict** com target ES2024 e module resolution `nodenext`
-- **ESLint** com typescript-eslint, integracao com prettier e `simple-import-sort` (imports devem ser ordenados)
-- **Zod 4** para validacao (usa padrao `z.interface()`, nao `z.object()`)
-- **CORS** permite `http://localhost:3000` com credentials
-- Variaveis de ambiente: `PORT`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+- C# com `Nullable` e `ImplicitUsings` habilitados; records para DTOs.
+- Datas em UTC na API (`DateTimeOffset`/`timestamptz`); a Web converte para `App:TimeZone`.
+- Mensagens de erro de validacao da API em portugues (sao exibidas nas telas).
+- Segredos (JWT, Google, chaves de IA, YouTube) em User Secrets ou variaveis de ambiente, nunca no `appsettings.json`.

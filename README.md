@@ -9,7 +9,7 @@
 
 > **FIT.AI** é o nome que a pessoa lê — telas, logo, Figma. A solution se chama **`FitAi`**.
 >
-> 🚧 **Em construção.** Esta branch reescreve em .NET 10 o antigo back-end Node.js (Fastify + Prisma + Better-Auth). Veja o [estado atual](#estado-atual).
+> Esta branch reescreve em .NET 10 o antigo back-end Node.js (Fastify + Prisma + Better-Auth) e adiciona o front-end web, a área administrativa e o app Android. Veja o [estado atual](#estado-atual).
 
 ## 📋 Introdução
 
@@ -31,6 +31,15 @@ As telas do aluno são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoje
 
 | Etapa | Entrega | Estado |
 | --- | --- | --- |
+| API | Entidades, EF Core + migration, login Google → JWT, papéis, convites (e-mail e código), rotas do aluno, rotas `/admin`, Coach AI com provedor configurável | ✅ Entregue e testada ponta a ponta com PostgreSQL |
+| Web — aluno | Login, onboarding/chat, Home, Plano, Treino do dia (iniciar/concluir), Evolução, Perfil (dados e código de convite) | ✅ Entregue |
+| Web — `/admin` | Painel, alunos/professores, detalhe do aluno, editor de planos, convites e códigos, configurações do Coach AI | ✅ Entregue |
+| App MAUI (Android) | Login com Google, Home, Plano, Treino do dia, Coach AI, Evolução, Perfil | ✅ Código entregue — compilação validada no alvo `net10.0`; o APK precisa ser gerado com o Android SDK (Visual Studio/Rider) |
+| Testes | xUnit: sequência, validação de plano, códigos de convite, prompt do Coach | ✅ 19 testes |
+
+**Ainda não feito:** resposta do Coach em streaming (hoje a resposta chega inteira), refresh token (o JWT dura 7 dias e depois pede login de novo), assinatura ("Plano Básico").
+
+--- | --- | --- |
 | Scaffold | Solution `FitAi.slnx`, projetos criados, código Node.js removido | ✅ Entregue |
 | Contracts | DTOs compartilhados em `shared/FitAi.Contracts` | ✅ Entregue |
 | API | Entidades, EF Core + migrations, autenticação, papéis, convites, use cases, controllers, Coach AI | 🚧 Em andamento |
@@ -115,7 +124,7 @@ O chat usa `Microsoft.Extensions.AI` (`IChatClient` + tools). O provedor padrão
 
 As chaves ficam só na configuração (User Secrets / variáveis de ambiente); no painel o admin escolhe o provedor, o modelo, o prompt do sistema e as imagens de capa. As tools do chat são: `getUserTrainData`, `updateUserTrainData`, `getWorkoutPlans`, `createWorkoutPlan` e `searchExerciseVideos` — sempre com o `userId` do usuário autenticado, nunca vindo do modelo.
 
-### Rotas da API (planejadas)
+### Rotas da API
 
 | Método | Rota | Tela |
 | --- | --- | --- |
@@ -131,7 +140,7 @@ As chaves ficam só na configuração (User Secrets / variáveis de ambiente); n
 | `GET` | `/workout-plans/{planId}/days/{dayId}` | Treino de Hoje / Dia do Plano |
 | `POST` | `/workout-plans/{planId}/days/{dayId}/sessions` | Iniciar treino |
 | `PATCH` | `/workout-plans/{planId}/days/{dayId}/sessions/{sessionId}` | Marcar como concluído |
-| `POST` | `/coach/chat` | Chat / Onboarding |
+| `POST` | `/coach/chat` | Chat / Onboarding (o cliente reenvia o histórico a cada mensagem) |
 | `GET` | `/admin/dashboard` | Painel |
 | `GET` · `PATCH` | `/admin/users` · `/admin/users/{id}` | Alunos e professores |
 | `POST` · `PUT` · `DELETE` | `/admin/users/{id}/workout-plans` · `/admin/workout-plans/{id}` | Planos dos alunos |
@@ -171,8 +180,8 @@ A **consistência** agrupa as sessões pela data de início (UTC). Na **Home**, 
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - Docker (para o PostgreSQL) ou um PostgreSQL 16 local
-- Para o App: workload MAUI (`dotnet workload install maui-android`) e o Android SDK (Visual Studio 2022+/Rider já instalam)
-- Ferramenta do EF Core: `dotnet tool install --global dotnet-ef`
+- Para o App: workload MAUI (`dotnet workload install maui-android`) e o Android SDK (Visual Studio/Rider já instalam)
+- Para criar migrations: `dotnet tool install --global dotnet-ef`
 
 ### 2. Banco
 
@@ -180,30 +189,35 @@ A **consistência** agrupa as sessões pela data de início (UTC). Na **Home**, 
 docker compose up -d
 ```
 
-### 3. Segredos
+### 3. Configuração
 
-As chaves ficam em [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), nunca no `appsettings.json`:
+O `appsettings.Development.json` da API já vem pronto para desenvolvimento local: banco em `localhost:5432`, segredo JWT de desenvolvimento, migrations aplicadas no startup e **login de desenvolvimento** (entra só com o e-mail, sem Google).
+
+1. Troque `admin@fitai.local` em `Auth:AdminEmails` (`backend/FitAi.Api/appsettings.Development.json`) pelo seu e-mail — é ele que vira **Admin**.
+2. As chaves ficam em [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), nunca no `appsettings.json`:
 
 ```bash
 cd backend/FitAi.Api
-dotnet user-secrets set "Auth:JwtSecret" "<string aleatória com 32+ caracteres>"
-dotnet user-secrets set "Auth:Google:ClientId" "<client id>"
-dotnet user-secrets set "Auth:Google:ClientSecret" "<client secret>"
 dotnet user-secrets set "Ai:Providers:OpenAI:ApiKey" "<chave da OpenAI>"
-dotnet user-secrets set "YouTube:ApiKey" "<chave do YouTube Data API>"   # opcional
+dotnet user-secrets set "Auth:Google:ClientId" "<client id>"          # opcional em dev (há o login de desenvolvimento)
+dotnet user-secrets set "Auth:Google:ClientSecret" "<client secret>"
+dotnet user-secrets set "YouTube:ApiKey" "<chave do YouTube Data API>" # opcional: sem ela o Coach indica um link de busca
 ```
 
-E defina quem é admin em `Auth:AdminEmails` no `appsettings.Development.json`.
+No Google Cloud Console, cadastre como *Authorized redirect URI* do OAuth: `http://localhost:8080/auth/google/signin`.
+
+Para trocar de provedor de IA (Gemini, Ollama, Azure OpenAI...), configure a chave em `Ai:Providers:<Nome>:ApiKey` e escolha o provedor no painel (`/admin/ia`) ou em `Ai:DefaultProvider`.
 
 ### 4. Rodar
 
 ```bash
-dotnet ef database update --project backend/FitAi.Api   # aplica as migrations
-dotnet run --project backend/FitAi.Api                   # API
-dotnet run --project frontend/FitAi.Web                  # Web
+dotnet run --project backend/FitAi.Api     # API em http://localhost:8080 (referência em /docs)
+dotnet run --project frontend/FitAi.Web    # Web em http://localhost:3000 (painel em /admin)
 ```
 
-O App é executado pelo Visual Studio ou Rider num emulador ou aparelho Android. No emulador, a API local fica em `http://10.0.2.2:<porta>`.
+Ou tudo em containers: `docker compose --profile full up -d --build`.
+
+**App Android:** abra `app/FitAi.App` no Visual Studio ou Rider (com o workload `maui-android` e o Android SDK) e rode num emulador. O app aponta para `http://10.0.2.2:8080` (o localhost da máquina visto pelo emulador) — para aparelho físico, troque `AppConfig.ApiBaseUrl`. O retorno do login usa o deep link `fitai://auth`, já liberado em `Auth:AllowedRedirectUris`.
 
 ### 5. Testes
 

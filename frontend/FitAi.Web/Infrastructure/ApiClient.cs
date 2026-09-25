@@ -14,7 +14,7 @@ public sealed class ApiException(HttpStatusCode statusCode, string message, stri
 }
 
 /// <summary>Cliente tipado da FitAi.Api. O token do usuário logado é anexado pelo <see cref="BearerTokenHandler"/>.</summary>
-public sealed class ApiClient(HttpClient http)
+public sealed class ApiClient(HttpClient http, IConfiguration configuration)
 {
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -28,7 +28,10 @@ public sealed class ApiClient(HttpClient http)
     public Task<AuthTokenResponse> ExchangeCodeAsync(string code, CancellationToken ct) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/token", new ExchangeAuthCodeRequest(code), ct);
     public Task<AuthTokenResponse> DevLoginAsync(string email, string? name, CancellationToken ct) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/dev-login", new DevLoginRequest(email, name), ct);
     public Task<CurrentUserResponse> GetCurrentUserAsync(CancellationToken ct) => Get<CurrentUserResponse>("auth/me", ct);
-    public string GoogleLoginUrl(string redirectUri) => $"{BaseUrl}/auth/google/login?redirectUri={Uri.EscapeDataString(redirectUri)}";
+    /// <summary>URL da API vista pelo navegador (Api:PublicUrl); difere de Api:BaseUrl quando a Web fala com a API por rede interna.</summary>
+    public string PublicUrl => (configuration["Api:PublicUrl"] ?? BaseUrl).TrimEnd('/');
+
+    public string GoogleLoginUrl(string redirectUri) => $"{PublicUrl}/auth/google/login?redirectUri={Uri.EscapeDataString(redirectUri)}";
 
     // ---------- Aluno ----------
     public Task<HomeDataResponse> GetHomeAsync(DateOnly date, CancellationToken ct) => Get<HomeDataResponse>($"home/{date:yyyy-MM-dd}", ct);
