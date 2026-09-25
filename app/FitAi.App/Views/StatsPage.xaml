@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FitAi.App.ViewModels"
+             x:Class="FitAi.App.Views.StatsPage"
+             x:DataType="vm:StatsViewModel"
+             BackgroundColor="White">
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+        <ScrollView>
+            <VerticalStackLayout Spacing="16" Padding="20,20,20,24">
+                <Label Text="FIT.AI" FontSize="22" FontAttributes="Bold" />
+
+                <Border StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="20,28">
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding HasStreak}" Value="True">
+                            <Setter Property="Background">
+                                <LinearGradientBrush EndPoint="0,1">
+                                    <GradientStop Color="#FFB347" Offset="0" />
+                                    <GradientStop Color="#F97316" Offset="0.5" />
+                                    <GradientStop Color="#B91C1C" Offset="1" />
+                                </LinearGradientBrush>
+                            </Setter>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Border" Binding="{Binding HasStreak}" Value="False">
+                            <Setter Property="Background">
+                                <LinearGradientBrush EndPoint="0,1">
+                                    <GradientStop Color="#D4D4D8" Offset="0" />
+                                    <GradientStop Color="#27272A" Offset="1" />
+                                </LinearGradientBrush>
+                            </Setter>
+                        </DataTrigger>
+                    </Border.Triggers>
+                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                        <Label Text="🔥" FontSize="32" HorizontalOptions="Center" />
+                        <Label Text="{Binding StreakText}" TextColor="White" FontSize="40" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label Text="Sequência Atual" TextColor="#D9FFFFFF" FontSize="13" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="Consistência" FontSize="16" FontAttributes="Bold" />
+                <Border Stroke="{StaticResource Line}" StrokeShape="RoundRectangle 20" Padding="14">
+                    <CollectionView ItemsSource="{Binding Cells}" HeightRequest="112" HorizontalScrollBarVisibility="Never">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Horizontal" Span="7" HorizontalItemSpacing="3" VerticalItemSpacing="3" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HeatCell">
+                                <BoxView WidthRequest="13" HeightRequest="13" CornerRadius="4" Color="{Binding Fill}" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+
+                <Border IsVisible="{Binding HasNoStats}" Stroke="#D4D4D8" StrokeDashArray="4,3" StrokeShape="RoundRectangle 20" Padding="20">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Crie um plano de treino para acompanhar sua evolução." TextColor="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                        <Button Text="Falar com o Coach AI" Command="{Binding OpenCoachCommand}" BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="20" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid IsVisible="{Binding HasStats}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                    <Border BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Completed}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+                            <Label Text="Treinos Feitos" FontSize="11" TextColor="{StaticResource Muted}" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Rate}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+                            <Label Text="Taxa de conclusão" FontSize="11" TextColor="{StaticResource Muted}" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.ColumnSpan="2" BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding TotalTime}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+                            <Label Text="Tempo Total" FontSize="11" TextColor="{StaticResource Muted}" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

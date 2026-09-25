@@ -1,16 +1,24 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using FitAi.App.Services;
 
 namespace FitAi.App;
 
 public partial class App : Application
 {
-	public App()
-	{
-		InitializeComponent();
-	}
+    private readonly AppShell _shell;
 
-	protected override Window CreateWindow(IActivationState? activationState)
-	{
-		return new Window(new AppShell());
-	}
+    public App(AppShell shell, ApiClient api, AuthService auth)
+    {
+        InitializeComponent();
+        // O visual segue o Figma (tema claro).
+        UserAppTheme = AppTheme.Light;
+        _shell = shell;
+
+        api.SessionExpired += (_, _) => MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            auth.Logout();
+            await Shell.Current.GoToAsync("//login");
+        });
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState) => new(_shell);
 }

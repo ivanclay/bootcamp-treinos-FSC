@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FitAi.App.ViewModels"
+             x:Class="FitAi.App.Views.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             BackgroundColor="Black"
+             Shell.NavBarIsVisible="False">
+    <Grid RowDefinitions="*,Auto">
+        <Image Grid.RowSpan="2" Source="https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOW3fJmqZe4yoUcwvRPQa8kmFprzNiC30hqftL" Aspect="AspectFill" />
+        <Label Text="FIT.AI" FontSize="44" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" Margin="0,56,0,0" />
+        <Border Grid.Row="1" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" Padding="24,32,24,24">
+            <Border.StrokeShape><RoundRectangle CornerRadius="28,28,0,0" /></Border.StrokeShape>
+            <VerticalStackLayout Spacing="20">
+                <Label Text="O app que vai transformar a forma como você treina." FontSize="26" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center" />
+                <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextColor="White" BackgroundColor="#33FF0000" Padding="10" HorizontalTextAlignment="Center" />
+                <Button Text="Fazer login com Google" BackgroundColor="White" TextColor="{StaticResource Ink}" CornerRadius="24" HeightRequest="48" FontAttributes="Bold"
+                        Command="{Binding LoginWithGoogleCommand}" />
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding DevLoginAvailable}">
+                    <Label Text="Login de desenvolvimento" TextColor="White" FontSize="12" FontAttributes="Bold" />
+                    <Entry Placeholder="email@exemplo.com" Keyboard="Email" Text="{Binding DevEmail}" BackgroundColor="White" TextColor="{StaticResource Ink}" />
+                    <Button Text="Entrar" BackgroundColor="#33FFFFFF" TextColor="White" CornerRadius="20" Command="{Binding DevLoginCommand}" />
+                </VerticalStackLayout>
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="White" />
+                <Label Text="©2026 Copyright FIT.AI. Todos os direitos reservados" TextColor="#B3FFFFFF" FontSize="10" HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentPage>
