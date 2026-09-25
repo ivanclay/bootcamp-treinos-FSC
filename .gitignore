@@ -1,18 +1,7 @@
-node_modules
-/src/generated/prisma
 .env
 
 # Build
-
 dist
-
-# .NET
-bin/
-obj/
-*.user
-.vs/
-appsettings.*.local.json
-
 
 # .NET
 bin/
