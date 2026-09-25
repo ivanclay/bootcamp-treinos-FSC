@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="FitAi.App.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:FitAi.App.Views"
+    Title="FIT.AI"
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarForegroundColor="{StaticResource Ink}"
+    Shell.TabBarTitleColor="{StaticResource Primary}"
+    Shell.TabBarUnselectedColor="{StaticResource Muted}">
+
+    <ShellContent Route="login" ContentTemplate="{DataTemplate views:LoginPage}" Shell.TabBarIsVisible="False" />
+
+    <TabBar Route="main">
+        <ShellContent Route="home" Title="Início" Icon="tab_home.png" ContentTemplate="{DataTemplate views:HomePage}" />
+        <ShellContent Route="plan" Title="Plano" Icon="tab_calendar.png" ContentTemplate="{DataTemplate views:PlanPage}" />
+        <ShellContent Route="coach" Title="Coach AI" Icon="tab_sparkles.png" ContentTemplate="{DataTemplate views:CoachPage}" />
+        <ShellContent Route="stats" Title="Evolução" Icon="tab_chart.png" ContentTemplate="{DataTemplate views:StatsPage}" />
+        <ShellContent Route="profile" Title="Perfil" Icon="tab_user.png" ContentTemplate="{DataTemplate views:ProfilePage}" />
+    </TabBar>
+</Shell>

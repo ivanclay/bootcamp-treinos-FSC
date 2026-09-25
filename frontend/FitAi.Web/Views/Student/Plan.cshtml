@@ -1,0 +1,57 @@
+@model WorkoutPlanViewModel
+@{
+    ViewData["Title"] = "Plano de Treino";
+    var plan = Model.Plan;
+}
+@if (plan is null)
+{
+    <div class="topbar"><div class="logo">FIT.AI</div></div>
+    <div class="page">
+        <div class="empty">
+            @Icons.Get("calendar", 28)
+            <div>Nenhum plano de treino ativo ainda.</div>
+            <a class="btn sm" href="/coach">Montar com o Coach AI</a>
+        </div>
+    </div>
+}
+else
+{
+    <section class="hero" style="min-height:220px;background-image:url('@Images.Or(plan.CoverImageUrl)')">
+        <div class="logo">FIT.AI</div>
+        <div class="stack" style="gap:8px">
+            <div><span class="chip brand">@Icons.Get("target", 12) @Format.Goal(plan.Goal)</span></div>
+            <h1 style="margin:0;font-size:24px">@plan.Name</h1>
+            @if (plan.Source == WorkoutPlanSource.TEACHER)
+            {
+                <span class="small" style="opacity:.8">Montado pelo seu professor</span>
+            }
+        </div>
+    </section>
+    <div class="page">
+        @foreach (var weekDay in Format.WeekOrder)
+        {
+            var day = plan.WorkoutDays.FirstOrDefault(d => d.WeekDay == weekDay);
+            if (day is null) { continue; }
+            if (day.IsRest)
+            {
+                <div class="rest-card">
+                    <div><span class="chip">@Icons.Get("calendar", 12) @Format.DayName(day.WeekDay)</span></div>
+                    <h3>@Icons.Get("zap", 18) Descanso</h3>
+                </div>
+            }
+            else
+            {
+                <a class="photo-card" href="/treino/@plan.Id/@day.Id" style="background-image:url('@Images.Or(day.CoverImageUrl)')">
+                    <div><span class="chip dark">@Icons.Get("calendar", 12) @Format.DayName(day.WeekDay)</span></div>
+                    <div>
+                        <h3>@day.Name</h3>
+                        <div class="meta">
+                            <span>@Icons.Get("timer", 14) @Format.Minutes(day.EstimatedDurationInSeconds)</span>
+                            <span>@Icons.Get("dumbbell", 14) @day.Exercises.Count exercícios</span>
+                        </div>
+                    </div>
+                </a>
+            }
+        }
+    </div>
+}

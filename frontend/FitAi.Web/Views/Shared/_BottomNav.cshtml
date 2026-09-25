@@ -1,0 +1,8 @@
+@model string
+<nav class="bottom-nav" aria-label="Navegação principal">
+    <a href="/" class="@(Model == "home" ? "active" : "")" aria-label="Início">@Icons.Get("home", 22)</a>
+    <a href="/plano" class="@(Model == "plan" ? "active" : "")" aria-label="Plano de treino">@Icons.Get("calendar", 22)</a>
+    <a href="/coach" class="ai" aria-label="Coach AI">@Icons.Get("sparkles", 24)</a>
+    <a href="/evolucao" class="@(Model == "stats" ? "active" : "")" aria-label="Evolução">@Icons.Get("chart", 22)</a>
+    <a href="/perfil" class="@(Model == "profile" ? "active" : "")" aria-label="Perfil">@Icons.Get("user", 22)</a>
+</nav>

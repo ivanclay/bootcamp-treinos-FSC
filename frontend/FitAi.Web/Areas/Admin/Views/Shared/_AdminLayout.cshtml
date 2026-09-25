@@ -1,0 +1,53 @@
+@{
+    var path = Context.Request.Path.Value ?? "";
+    string Active(string prefix, bool exact = false) =>
+        (exact ? path == prefix : path.StartsWith(prefix)) ? "active" : "";
+    var flash = TempData["Flash"] as string;
+    var flashError = TempData["FlashError"] as string;
+    var isAdmin = User.IsAdmin();
+}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")FIT.AI Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="admin-shell">
+        <aside class="sidebar">
+            <a class="brand" href="/admin"><span class="logo">FIT.AI</span><span class="badge-area">@(isAdmin ? "Admin" : "Professor")</span></a>
+            <nav class="nav flex-column">
+                <a class="nav-link @Active("/admin", true)" href="/admin">@Icons.Get("dashboard", 18) Painel</a>
+                <a class="nav-link @(path.StartsWith("/admin/usuarios") && Context.Request.Query["role"] != "TEACHER" ? "active" : "")" href="/admin/usuarios?role=STUDENT">@Icons.Get("users", 18) Alunos</a>
+                @if (isAdmin)
+                {
+                    <a class="nav-link @(Context.Request.Query["role"] == "TEACHER" ? "active" : "")" href="/admin/usuarios?role=TEACHER">@Icons.Get("user", 18) Professores</a>
+                }
+                <a class="nav-link @Active("/admin/convites")" href="/admin/convites">@Icons.Get("ticket", 18) Convites</a>
+                @if (isAdmin)
+                {
+                    <a class="nav-link @Active("/admin/ia")" href="/admin/ia">@Icons.Get("sparkles", 18) Coach AI</a>
+                }
+            </nav>
+            <div class="sidebar-footer">
+                <div class="small text-truncate"><strong>@User.Identity?.Name</strong></div>
+                <a class="small" href="/">Ver como aluno</a>
+                <form method="post" action="/sair" asp-antiforgery="true"><button class="btn btn-link btn-sm p-0 text-danger" type="submit">Sair</button></form>
+            </div>
+        </aside>
+        <main class="content">
+            @if (flash is not null) { <div class="alert alert-success">@flash</div> }
+            @if (flashError is not null) { <div class="alert alert-danger">@flashError</div> }
+            @RenderBody()
+        </main>
+    </div>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

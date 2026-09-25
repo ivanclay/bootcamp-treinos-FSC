@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FitAi.App.ViewModels"
+             x:Class="FitAi.App.Views.ProfilePage"
+             x:DataType="vm:ProfileViewModel"
+             BackgroundColor="White">
+    <ScrollView>
+        <VerticalStackLayout Spacing="16" Padding="20,20,20,24">
+            <Label Text="FIT.AI" FontSize="22" FontAttributes="Bold" />
+            <Label Text="{Binding Message}" IsVisible="{Binding HasMessage}" BackgroundColor="#F0FDF4" TextColor="#166534" Padding="12" />
+            <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" BackgroundColor="#FEF2F2" TextColor="#991B1B" Padding="12" />
+
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <Border WidthRequest="52" HeightRequest="52" StrokeShape="RoundRectangle 26" StrokeThickness="0" BackgroundColor="{StaticResource BrandSoft}">
+                    <Grid>
+                        <Image Source="{Binding Image}" IsVisible="{Binding HasImage}" Aspect="AspectFill" />
+                        <Label Text="{Binding Initial}" IsVisible="{Binding HasNoImage}" TextColor="{StaticResource Primary}" FontSize="20" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                    <Label Text="{Binding Name}" FontSize="17" FontAttributes="Bold" />
+                    <Label Text="{Binding Subtitle}" FontSize="12" TextColor="{StaticResource Muted}" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Grid IsVisible="{Binding IsNotEditing}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Border BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{Binding Weight}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label Text="KG" FontSize="11" TextColor="{StaticResource Muted}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="1" BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{Binding Height}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label Text="CM" FontSize="11" TextColor="{StaticResource Muted}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{Binding BodyFat}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label Text="GC" FontSize="11" TextColor="{StaticResource Muted}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{Binding Age}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label Text="ANOS" FontSize="11" TextColor="{StaticResource Muted}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <VerticalStackLayout IsVisible="{Binding IsEditing}" Spacing="8">
+                <Label Text="Peso (kg)" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding EditWeight}" Keyboard="Numeric" />
+                <Label Text="Altura (cm)" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding EditHeight}" Keyboard="Numeric" />
+                <Label Text="Idade" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding EditAge}" Keyboard="Numeric" />
+                <Label Text="Gordura corporal (%)" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding EditBodyFat}" Keyboard="Numeric" />
+                <Button Text="Salvar" Command="{Binding SaveCommand}" BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="24" HeightRequest="48" />
+            </VerticalStackLayout>
+
+            <Button Text="{Binding EditButtonText}" Command="{Binding ToggleEditCommand}"
+                    BackgroundColor="White" TextColor="{StaticResource Ink}" BorderColor="{StaticResource Line}" BorderWidth="1" CornerRadius="24" HeightRequest="48" />
+
+            <Border IsVisible="{Binding ShowInvite}" Stroke="{StaticResource Line}" StrokeShape="RoundRectangle 20" Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Tem um código do seu professor?" FontAttributes="Bold" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Entry Placeholder="FIT-XXXXXX" Text="{Binding InviteCode}" TextTransform="Uppercase" />
+                        <Button Grid.Column="1" Text="Usar" Command="{Binding RedeemInviteCommand}" BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="18" HeightRequest="36" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Text="Sair da conta" Command="{Binding LogoutCommand}" BackgroundColor="Transparent" TextColor="{StaticResource Danger}" FontAttributes="Bold" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

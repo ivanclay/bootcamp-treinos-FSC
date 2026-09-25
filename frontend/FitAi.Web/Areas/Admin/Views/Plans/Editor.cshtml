@@ -1,0 +1,150 @@
+@model PlanEditorViewModel
+@{
+    ViewData["Title"] = Model.PlanId is null ? "Novo plano" : "Editar plano";
+    var covers = new[]
+    {
+        ("Superior 1", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO3y8pQ6GBg8iqe9pP2JrHjwd1nfKtVSQskI0v"),
+        ("Superior 2", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOW3fJmqZe4yoUcwvRPQa8kmFprzNiC30hqftL"),
+        ("Inferior 1", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOgCHaUgNGronCvXmSzAMs1N3KgLdE5yHT6Ykj"),
+        ("Inferior 2", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO85RVu3morROwZk5NPhs1jzH7X8TyEvLUCGxY"),
+    };
+}
+<div class="page-head">
+    <div>
+        <h1>@ViewData["Title"]</h1>
+        <p>Aluno: <a href="/admin/usuarios/@Model.UserId">@Model.StudentName</a>@(Model.PlanId is null ? " · o novo plano passa a ser o plano ativo" : "")</p>
+    </div>
+</div>
+
+@if (Model.Error is not null) { <div class="alert alert-danger">@Model.Error</div> }
+
+<datalist id="covers">
+    @foreach (var (label, url) in covers) { <option value="@url">@label</option> }
+</datalist>
+
+<form method="post" action="/admin/usuarios/@Model.UserId/planos/salvar" asp-antiforgery="true" id="plan-form">
+    <input type="hidden" asp-for="PlanId" />
+    <input type="hidden" asp-for="StudentName" />
+    <div class="panel mb-3">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label">Nome do plano</label>
+                <input class="form-control" asp-for="Name" required maxlength="120" placeholder="Ex.: Hipertrofia — Upper/Lower" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Objetivo</label>
+                <select class="form-select" asp-for="Goal">
+                    <option value="">Sem objetivo</option>
+                    @foreach (var g in Enum.GetValues<WorkoutGoal>()) { <option value="@g" selected="@(Model.Goal == g)">@Format.Goal(g)</option> }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Imagem de capa (opcional)</label>
+                <input class="form-control" asp-for="CoverImageUrl" list="covers" placeholder="Usa a capa do primeiro treino" />
+            </div>
+        </div>
+    </div>
+
+    @for (var i = 0; i < Model.Days.Count; i++)
+    {
+        var day = Model.Days[i];
+        <div class="day-card @(day.Included ? "" : "excluded") @(day.IsRest ? "rest" : "")" data-day>
+            <input type="hidden" name="Days[@i].WeekDay" value="@day.WeekDay" />
+            <div class="day-head">
+                <span class="day-name">@Format.DayName(day.WeekDay)</span>
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="Days[@i].Included" value="true" checked="@day.Included" data-toggle-included />
+                    <input type="hidden" name="Days[@i].Included" value="false" />
+                    <label class="form-check-label small">No plano</label>
+                </div>
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="Days[@i].IsRest" value="true" checked="@day.IsRest" data-toggle-rest />
+                    <input type="hidden" name="Days[@i].IsRest" value="false" />
+                    <label class="form-check-label small">Descanso</label>
+                </div>
+                <input class="form-control form-control-sm" style="max-width:260px" name="Days[@i].Name" value="@day.Name" placeholder="Ex.: Superiores — Peito e Costas" />
+            </div>
+            <div class="day-body">
+                <div class="exercises-block">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Duração (min)</label>
+                            <input class="form-control form-control-sm" type="number" min="1" max="360" name="Days[@i].DurationMinutes" value="@day.DurationMinutes" />
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label small mb-1">Imagem de capa</label>
+                            <input class="form-control form-control-sm" name="Days[@i].CoverImageUrl" value="@day.CoverImageUrl" list="covers" placeholder="Escolha uma sugestão ou cole uma URL" />
+                        </div>
+                    </div>
+                    <table class="table table-sm mb-2">
+                        <thead><tr><th>Exercício</th><th style="width:90px">Séries</th><th style="width:90px">Reps</th><th style="width:120px">Descanso (s)</th><th style="width:40px"></th></tr></thead>
+                        <tbody data-exercises data-day-index="@i">
+                            @for (var j = 0; j < day.Exercises.Count; j++)
+                            {
+                                var e = day.Exercises[j];
+                                <tr class="exercise-row">
+                                    <td><input class="form-control form-control-sm" data-field="Name" value="@e.Name" placeholder="Ex.: Supino Inclinado" /></td>
+                                    <td><input class="form-control form-control-sm" type="number" min="1" max="50" data-field="Sets" value="@e.Sets" /></td>
+                                    <td><input class="form-control form-control-sm" type="number" min="1" max="500" data-field="Reps" value="@e.Reps" /></td>
+                                    <td><input class="form-control form-control-sm" type="number" min="0" max="1800" data-field="RestTimeInSeconds" value="@e.RestTimeInSeconds" /></td>
+                                    <td><button type="button" class="btn btn-sm btn-link text-danger" data-remove aria-label="Remover">@Icons.Get("trash", 14)</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-add>@Icons.Get("plus", 14) Exercício</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <template id="exercise-template">
+        <tr class="exercise-row">
+            <td><input class="form-control form-control-sm" data-field="Name" placeholder="Ex.: Supino Inclinado" /></td>
+            <td><input class="form-control form-control-sm" type="number" min="1" max="50" data-field="Sets" value="3" /></td>
+            <td><input class="form-control form-control-sm" type="number" min="1" max="500" data-field="Reps" value="12" /></td>
+            <td><input class="form-control form-control-sm" type="number" min="0" max="1800" data-field="RestTimeInSeconds" value="60" /></td>
+            <td><button type="button" class="btn btn-sm btn-link text-danger" data-remove aria-label="Remover">@Icons.Get("trash", 14)</button></td>
+        </tr>
+    </template>
+
+    <div class="d-flex gap-2 justify-content-end mt-3 mb-5">
+        <a class="btn btn-outline-secondary" href="/admin/usuarios/@Model.UserId">Cancelar</a>
+        <button class="btn btn-primary" type="submit">@(Model.PlanId is null ? "Criar e ativar plano" : "Salvar alterações")</button>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById("plan-form");
+            const template = document.getElementById("exercise-template");
+            form.addEventListener("click", (e) => {
+                const add = e.target.closest("[data-add]");
+                if (add) {
+                    const body = add.closest("[data-day]").querySelector("[data-exercises]");
+                    body.appendChild(template.content.cloneNode(true));
+                    body.lastElementChild.querySelector("input").focus();
+                }
+                const remove = e.target.closest("[data-remove]");
+                if (remove) remove.closest("tr").remove();
+            });
+            form.addEventListener("change", (e) => {
+                const card = e.target.closest("[data-day]");
+                if (e.target.matches("[data-toggle-included]")) card.classList.toggle("excluded", !e.target.checked);
+                if (e.target.matches("[data-toggle-rest]")) card.classList.toggle("rest", e.target.checked);
+            });
+            // Renumera os campos dos exercícios para o model binding (Days[i].Exercises[j].Campo).
+            form.addEventListener("submit", () => {
+                form.querySelectorAll("[data-exercises]").forEach((body) => {
+                    const i = body.dataset.dayIndex;
+                    body.querySelectorAll("tr").forEach((row, j) => {
+                        row.querySelectorAll("[data-field]").forEach((input) => {
+                            input.name = `Days[${i}].Exercises[${j}].${input.dataset.field}`;
+                        });
+                    });
+                });
+            });
+        })();
+    </script>
+}

@@ -1,0 +1,151 @@
+@model UserDetailViewModel
+@{
+    var d = Model.Detail;
+    var u = d.User;
+    ViewData["Title"] = u.Name;
+    var isAdmin = User.IsAdmin();
+    var isSelf = u.Id == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var t = d.TrainData;
+}
+<div class="page-head">
+    <div class="d-flex align-items-center gap-3">
+        <partial name="_UserAvatar" model="u" />
+        <div>
+            <h1>@u.Name</h1>
+            <p>@u.Email · <span class="pill @(u.Role == UserRole.STUDENT ? "" : "brand")">@Format.Role(u.Role)</span>
+                @if (u.IsBlocked) { <span class="pill danger">Bloqueado</span> }
+            </p>
+        </div>
+    </div>
+    <a class="btn btn-primary" href="/admin/usuarios/@u.Id/planos/novo">@Icons.Get("plus", 16) Novo plano de treino</a>
+</div>
+
+<div class="kpis">
+    <div class="kpi"><div class="label">Sequência atual</div><div class="value">🔥 @d.WorkoutStreak</div></div>
+    <div class="kpi"><div class="label">Treinos concluídos (30 dias)</div><div class="value">@d.CompletedWorkoutsLast30Days</div></div>
+    <div class="kpi"><div class="label">Peso</div><div class="value">@(t is null ? "—" : Format.Kg(t.WeightInGrams) + " kg")</div></div>
+    <div class="kpi"><div class="label">Altura · Idade · GC</div><div class="value fs-5 mt-2">@(t is null ? "—" : $"{t.HeightInCentimeters} cm · {t.Age} anos · {t.BodyFatPercentage}%")</div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="panel mb-3">
+            <h2>Planos de treino</h2>
+            @if (d.WorkoutPlans.Count == 0)
+            {
+                <p class="text-secondary">Nenhum plano ainda. Monte um plano ou deixe o aluno gerar pelo Coach AI.</p>
+            }
+            @foreach (var plan in d.WorkoutPlans)
+            {
+                <div class="border rounded-4 p-3 mb-3 @(plan.IsActive ? "border-primary" : "")">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <div class="fw-bold">@plan.Name
+                                @if (plan.IsActive) { <span class="pill ok ms-1">Ativo</span> }
+                                <span class="pill ms-1">@(plan.Source == WorkoutPlanSource.AI ? "Gerado pela IA" : "Montado pelo professor")</span>
+                            </div>
+                            <div class="small text-secondary">@Format.Goal(plan.Goal) · criado em @Format.Date(plan.CreatedAt, Clock.TimeZone)</div>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a class="btn btn-sm btn-outline-primary" href="/admin/usuarios/@u.Id/planos/@plan.Id/editar">@Icons.Get("edit", 14) Editar</a>
+                            <a class="btn btn-sm btn-outline-secondary" href="/admin/usuarios/@u.Id/planos/novo?copiarDe=@plan.Id">Duplicar</a>
+                            @if (!plan.IsActive)
+                            {
+                                <form method="post" action="/admin/planos/@plan.Id/ativar?userId=@u.Id" asp-antiforgery="true"><button class="btn btn-sm btn-outline-success">Ativar</button></form>
+                            }
+                            <form method="post" action="/admin/planos/@plan.Id/excluir?userId=@u.Id" asp-antiforgery="true" onsubmit="return confirm('Excluir este plano? O histórico de treinos dele também será apagado.')">
+                                <button class="btn btn-sm btn-outline-danger">@Icons.Get("trash", 14)</button>
+                            </form>
+                        </div>
+                    </div>
+                    <table class="table table-sm mt-2">
+                        <tbody>
+                            @foreach (var wd in Format.WeekOrder)
+                            {
+                                var day = plan.WorkoutDays.FirstOrDefault(x => x.WeekDay == wd);
+                                if (day is null) { continue; }
+                                <tr>
+                                    <td style="width:90px" class="fw-semibold">@Format.DayName(wd)</td>
+                                    <td>@(day.IsRest ? "Descanso" : day.Name)</td>
+                                    <td class="text-secondary small">
+                                        @if (!day.IsRest)
+                                        {
+                                            @string.Join(" · ", day.Exercises.Select(e => $"{e.Name} {e.Sets}x{e.Reps}"))
+                                        }
+                                    </td>
+                                    <td class="text-end text-secondary small">@(day.IsRest ? "" : Format.Minutes(day.EstimatedDurationInSeconds))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="panel">
+            <h2>Últimos treinos</h2>
+            @if (d.RecentSessions.Count == 0)
+            {
+                <p class="text-secondary mb-0">Nenhum treino registrado.</p>
+            }
+            else
+            {
+                <table class="table table-sm">
+                    <thead><tr><th>Treino</th><th>Início</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var s in d.RecentSessions)
+                        {
+                            <tr>
+                                <td>@s.WorkoutDayName</td>
+                                <td>@Format.Date(s.StartedAt, Clock.TimeZone)</td>
+                                <td>@(s.CompletedAt is null ? Html.Raw("<span class=\"pill warn\">Iniciado</span>") : Html.Raw("<span class=\"pill ok\">Concluído</span>"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <form class="panel" method="post" action="/admin/usuarios/@u.Id" asp-antiforgery="true">
+            <h2>Configurações</h2>
+            @if (isAdmin)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Papel</label>
+                    <select class="form-select" name="role" disabled="@isSelf">
+                        @foreach (var r in new[] { UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN })
+                        {
+                            <option value="@r" selected="@(u.Role == r)">@Format.Role(r)</option>
+                        }
+                    </select>
+                    @if (isSelf) { <input type="hidden" name="role" value="@u.Role" /> }
+                </div>
+                @if (u.Role == UserRole.STUDENT)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Professor</label>
+                        <select class="form-select" name="teacherId">
+                            <option value="">Sem professor</option>
+                            @foreach (var teacher in Model.Teachers)
+                            {
+                                <option value="@teacher.Id" selected="@(u.TeacherId == teacher.Id)">@teacher.Name</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="isBlocked" name="isBlocked" value="true" checked="@u.IsBlocked" disabled="@isSelf" />
+                    <label class="form-check-label" for="isBlocked">Bloquear acesso</label>
+                </div>
+            }
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="allowAi" name="allowAiWorkoutPlans" value="true" checked="@u.AllowAiWorkoutPlans" />
+                <label class="form-check-label" for="allowAi">Coach AI pode criar/alterar planos</label>
+                <div class="form-text">Desligado: só você monta os planos; a IA continua tirando dúvidas.</div>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Salvar</button>
+        </form>
+    </div>
+</div>

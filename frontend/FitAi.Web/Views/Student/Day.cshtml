@@ -1,0 +1,72 @@
+@model WorkoutDayViewModel
+@{
+    var day = Model.Day;
+    ViewData["Title"] = day.Name;
+    var session = Model.TodaySession;
+    var flash = TempData["Flash"] as string;
+}
+<div class="titlebar">
+    <a class="icon-btn" href="/plano" aria-label="Voltar">@Icons.Get("arrow-left", 20)</a>
+    <h1>@(Model.IsToday ? "Treino de Hoje" : Format.DayName(day.WeekDay))</h1>
+    <span></span>
+</div>
+<div class="page">
+    @if (flash is not null)
+    {
+        <div class="alert success">@flash</div>
+    }
+    <div class="photo-card tall" style="background-image:url('@Images.Or(day.CoverImageUrl)')">
+        <div><span class="chip dark">@Icons.Get("calendar", 12) @Format.DayName(day.WeekDay)</span></div>
+        <div class="actions">
+            <div>
+                <h3>@day.Name</h3>
+                <div class="meta">
+                    <span>@Icons.Get("timer", 14) @Format.Minutes(day.EstimatedDurationInSeconds)</span>
+                    <span>@Icons.Get("dumbbell", 14) @day.Exercises.Count exercícios</span>
+                </div>
+            </div>
+            @if (Model.IsActivePlan && !day.IsRest && session is null)
+            {
+                <form method="post" asp-antiforgery="true" action="/treino/@day.WorkoutPlanId/@day.Id/iniciar">
+                    <button class="btn sm" type="submit">@Icons.Get("play", 14) Iniciar Treino</button>
+                </form>
+            }
+            else if (session is { CompletedAt: not null })
+            {
+                <span class="chip brand">@Icons.Get("check", 12) Concluído</span>
+            }
+            else if (session is not null)
+            {
+                <span class="chip dark">Em andamento</span>
+            }
+        </div>
+    </div>
+
+    @if (day.IsRest)
+    {
+        <div class="rest-card"><h3>@Icons.Get("zap", 18) Dia de descanso</h3></div>
+    }
+
+    @foreach (var exercise in day.Exercises)
+    {
+        var question = $"Como executar corretamente o exercício {exercise.Name}? Quais são os erros comuns?";
+        <div class="exercise">
+            <div class="exercise-head">
+                <h4>@exercise.Name</h4>
+                <a href="/coach?q=@Uri.EscapeDataString(question)" aria-label="Tirar dúvida com o Coach AI">@Icons.Get("help", 18)</a>
+            </div>
+            <div class="tags">
+                <span class="chip">@exercise.Sets séries</span>
+                <span class="chip">@exercise.Reps reps</span>
+                <span class="chip">@Icons.Get("timer", 11) @Format.Rest(exercise.RestTimeInSeconds)</span>
+            </div>
+        </div>
+    }
+
+    @if (session is { CompletedAt: null })
+    {
+        <form method="post" asp-antiforgery="true" action="/treino/@day.WorkoutPlanId/@day.Id/concluir/@session.Id">
+            <button class="btn outline block" type="submit">@Icons.Get("check-circle", 16) Marcar como concluído</button>
+        </form>
+    }
+</div>

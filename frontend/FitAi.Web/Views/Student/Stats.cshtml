@@ -1,0 +1,59 @@
+@model StatsViewModel
+@{
+    ViewData["Title"] = "Evolução";
+    var stats = Model.Stats;
+    var streak = stats?.WorkoutStreak ?? 0;
+}
+<div class="topbar"><div class="logo">FIT.AI</div></div>
+<div class="page">
+    <div class="streak-hero @(streak == 0 ? "off" : "")">
+        <div class="flame-badge">@Icons.Get("flame", 26)</div>
+        <strong>@streak @(streak == 1 ? "dia" : "dias")</strong>
+        <span>Sequência Atual</span>
+    </div>
+
+    <section class="stack">
+        <div class="section-head"><h2>Consistência</h2></div>
+        <div class="card">
+            <div class="heatmap" id="heatmap">
+                @foreach (var month in Model.Months)
+                {
+                    <div class="month">
+                        <div class="month-label">@month.Label</div>
+                        <div class="weeks">
+                            @foreach (var week in month.Weeks)
+                            {
+                                <div class="col">
+                                    @foreach (var cell in week)
+                                    {
+                                        <span class="cell @cell.State" title="@(cell.State == "blank" ? "" : cell.Date)"></span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    @if (stats is null)
+    {
+        <div class="empty">Crie um plano de treino para acompanhar sua evolução.<a class="btn sm" href="/coach">Falar com o Coach AI</a></div>
+    }
+    else
+    {
+        <div class="stat-grid">
+            <div class="stat"><span class="badge">@Icons.Get("circle-check", 16)</span><strong>@stats.CompletedWorkoutsCount</strong><span>Treinos Feitos</span></div>
+            <div class="stat"><span class="badge">@Icons.Get("percent", 16)</span><strong>@Format.Percent(stats.ConclusionRate)</strong><span>Taxa de conclusão</span></div>
+            <div class="stat wide"><span class="badge">@Icons.Get("hourglass", 16)</span><strong>@Format.TotalTime(stats.TotalTimeInSeconds)</strong><span>Tempo Total</span></div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Mostra os meses mais recentes quando a tela for estreita.
+        (() => { const h = document.getElementById("heatmap"); if (h) h.scrollLeft = h.scrollWidth; })();
+    </script>
+}

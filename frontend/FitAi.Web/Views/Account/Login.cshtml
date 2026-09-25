@@ -1,0 +1,41 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Entrar";
+    var error = Model.Error switch
+    {
+        null => null,
+        "blocked" => "Sua conta está bloqueada. Fale com o seu professor.",
+        "expired" => "Sua sessão expirou. Entre novamente.",
+        "offline" => "Não foi possível falar com o servidor agora.",
+        "access_denied" => "Login cancelado.",
+        _ => "Não foi possível entrar. Tente de novo.",
+    };
+}
+<div class="login" style="background-image:url('@Images.Login')">
+    <div class="brand"><div class="logo lg">FIT.AI</div></div>
+    <div class="panel">
+        <h1>O app que vai transformar a forma como você treina.</h1>
+        @if (error is not null)
+        {
+            <div class="alert error">@error</div>
+        }
+        @if (Model.Providers.Google)
+        {
+            <a class="btn white" href="/login/google">@Icons.Get("google", 18) Fazer login com Google</a>
+        }
+        else if (!Model.Providers.DevLogin)
+        {
+            <div class="alert info">O login com Google ainda não foi configurado na API.</div>
+        }
+        @if (Model.Providers.DevLogin)
+        {
+            <form class="dev" method="post" asp-antiforgery="true" action="/login/dev">
+                <strong style="font-size:12px">Login de desenvolvimento</strong>
+                <input class="input" type="email" name="email" placeholder="email@exemplo.com" required />
+                <input class="input" type="text" name="name" placeholder="Nome (opcional)" />
+                <button class="btn white sm" type="submit">Entrar</button>
+            </form>
+        }
+        <div class="copyright">©@DateTime.UtcNow.Year Copyright FIT.AI. Todos os direitos reservados</div>
+    </div>
+</div>

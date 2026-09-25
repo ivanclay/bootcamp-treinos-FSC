@@ -1,51 +1,41 @@
-# CLAUDE.md
-
-Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar com código neste repositório.
+# Regras gerais
 
 ## Stack
 
-- Node.js (ES modules)
-- pnpm como package manager
-- TypeScript (target ES2024)
-- Fastify com Zod type provider
-- Prisma ORM com PostgreSQL (usando pg adapter)
-- better-auth para autenticação
-- Zod v4
+- .NET 10 (C#), solution `FitAi.slnx`
+- ASP.NET Core Web API com controllers (`backend/FitAi.Api`)
+- ASP.NET Core MVC com Razor Views (`frontend/FitAi.Web`)
+- .NET MAUI para Android (`app/FitAi.App`), MVVM com CommunityToolkit.Mvvm
+- EF Core 10 + Npgsql (PostgreSQL 16)
+- Microsoft.Extensions.AI (Coach AI), OpenAI por padrão e provedores configuráveis
+- xUnit para testes
 
 ## Comandos
 
 ```bash
-# Desenvolvimento
-pnpm dev                    # Inicia servidor dev com watch mode (tsx --watch)
-
-# Build
-pnpm build                  # Build com tsup
-
-# Banco de dados
-pnpm prisma generate        # Gera o Prisma client (também roda no postinstall)
-pnpm prisma migrate dev     # Executa migrations em desenvolvimento
-pnpm prisma studio          # Abre o Prisma Studio GUI
-
-# Linting
-pnpm eslint .               # Executa ESLint
+docker compose up -d                              # PostgreSQL
+dotnet run --project backend/FitAi.Api            # API em http://localhost:8080 (docs em /docs)
+dotnet run --project frontend/FitAi.Web           # Web em http://localhost:3000
+dotnet test tests/FitAi.Api.Tests                 # Testes
+dotnet ef migrations add <Nome> --project backend/FitAi.Api -o Data/Migrations
 ```
 
-## Arquitetura
+## Estrutura da API
 
-### Estrutura de Diretórios
+- `Controllers/` - Controllers (uma responsabilidade por controller/área)
+- `UseCases/<Área>/` - Classes de regra de negócio (padrão use case)
+- `Entities/` - Entidades do EF Core
+- `Data/` - `AppDbContext` e migrations
+- `Errors/` - Exceções de negócio e o handler que as converte em `{ error, code }`
+- `Domain/` - Lógica pura (ex.: cálculo da sequência)
+- `Ai/` - Prompt e fábrica de `IChatClient`
+- `Options/` - Classes de configuração (`Auth`, `Ai`, `YouTube`)
 
-- `src/` - Código fonte da aplicação
-  - `lib/db.ts` - Setup do client do banco (Prisma com pg adapter)
-  - `entities/` - Interfaces TypeScript para entidades de domínio
-  - `errors/` - Arquivos com classes de erro
-  - `schemas/` - Schemas Zod para validação de request/response
-  - `usecases/` - Classes de lógica de negócio (padrão use case)
-  - `generated/` - Prisma client gerado automaticamente (output em `generated/prisma/`)
-- `prisma/` - Schema e migrations do Prisma
+DTOs de request/response ficam em `shared/FitAi.Contracts` e são usados pela API, pela Web e pelo App.
 
-### Documentação da API
+## Documentação da API
 
-Swagger UI disponível em `/docs` quando o servidor está rodando (porta 4949).
+OpenAPI em `/swagger.json` e Scalar em `/docs` quando a API está rodando.
 
 ## MCPs
 

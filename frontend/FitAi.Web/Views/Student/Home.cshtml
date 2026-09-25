@@ -1,0 +1,88 @@
+@model HomeViewModel
+@{
+    ViewData["Title"] = "Início";
+    var today = Model.Home.TodayWorkoutDay;
+    var hero = Images.Or(today?.CoverImageUrl);
+    var dayUrl = today is null ? "/plano" : $"/treino/{today.WorkoutPlanId}/{today.Id}";
+    var monday = Model.Today.AddDays(-(((int)Model.Today.DayOfWeek + 6) % 7));
+}
+<section class="hero" style="background-image:url('@hero')">
+    <div class="logo">FIT.AI</div>
+    <div class="hero-bottom">
+        <div class="greeting">
+            <h1>Olá, @Model.FirstName</h1>
+            <p>@(today is { IsRest: true } ? "Hoje é dia de descanso" : "Bora treinar hoje?")</p>
+        </div>
+        @if (today is { IsRest: false })
+        {
+            <a class="btn sm" href="@dayUrl">Bora!</a>
+        }
+        else if (Model.Home.ActiveWorkoutPlanId is null)
+        {
+            <a class="btn sm" href="/coach">Criar plano</a>
+        }
+    </div>
+</section>
+
+<div class="page">
+    <section class="stack">
+        <div class="section-head">
+            <h2>Consistência</h2>
+            <a class="link" href="/evolucao">Ver histórico</a>
+        </div>
+        <div class="consistency">
+            <div class="card week">
+                @for (var i = 0; i < 7; i++)
+                {
+                    var date = monday.AddDays(i);
+                    var key = date.ToString("yyyy-MM-dd");
+                    var c = Model.Home.ConsistencyByDay.GetValueOrDefault(key);
+                    var css = c is { WorkoutDayCompleted: true } ? "done" : c is { WorkoutDayStarted: true } ? "started" : "";
+                    <div class="day">
+                        <span class="sq @css @(date == Model.Today ? "today" : "")" title="@date.ToString("dd/MM")"></span>
+                        @Format.DayInitial(Format.WeekOrder[i])
+                    </div>
+                }
+            </div>
+            <div class="streak-pill @(Model.Home.WorkoutStreak == 0 ? "off" : "")" title="Sequência atual">
+                @Icons.Get("flame", 20) @Model.Home.WorkoutStreak
+            </div>
+        </div>
+    </section>
+
+    <section class="stack">
+        <div class="section-head">
+            <h2>Treino de Hoje</h2>
+            <a class="link" href="/plano">Ver treinos</a>
+        </div>
+        @if (today is null)
+        {
+            <div class="empty">
+                @Icons.Get("sparkles", 28)
+                <div>Você ainda não tem um plano de treino ativo.</div>
+                <a class="btn sm" href="/coach">Montar com o Coach AI</a>
+            </div>
+        }
+        else if (today.IsRest)
+        {
+            <div class="rest-card">
+                <div><span class="chip">@Icons.Get("calendar", 12) @Format.DayName(today.WeekDay)</span></div>
+                <h3>@Icons.Get("zap", 18) Descanso</h3>
+                <span class="muted small">Recuperação também faz parte do treino. Aproveite!</span>
+            </div>
+        }
+        else
+        {
+            <a class="photo-card" href="@dayUrl" style="background-image:url('@Images.Or(today.CoverImageUrl)')">
+                <div><span class="chip dark">@Icons.Get("calendar", 12) @Format.DayName(today.WeekDay)</span></div>
+                <div>
+                    <h3>@today.Name</h3>
+                    <div class="meta">
+                        <span>@Icons.Get("timer", 14) @Format.Minutes(today.EstimatedDurationInSeconds)</span>
+                        <span>@Icons.Get("dumbbell", 14) @today.ExercisesCount exercícios</span>
+                    </div>
+                </div>
+            </a>
+        }
+    </section>
+</div>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FitAi.App.ViewModels"
+             x:Class="FitAi.App.Views.WorkoutDayPage"
+             x:DataType="vm:WorkoutDayViewModel"
+             Shell.NavBarIsVisible="True"
+             Shell.TabBarIsVisible="True"
+             Title="{Binding Title}"
+             BackgroundColor="White">
+    <ScrollView>
+        <VerticalStackLayout Spacing="12" Padding="20,12,20,24">
+            <Label Text="{Binding Message}" IsVisible="{Binding HasMessage}" BackgroundColor="#F0FDF4" TextColor="#166534" Padding="12" />
+            <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" BackgroundColor="#FEF2F2" TextColor="#991B1B" Padding="12" />
+
+            <Border StrokeThickness="0" StrokeShape="RoundRectangle 20" HeightRequest="200">
+                <Grid>
+                    <Image Source="{Binding Cover}" Aspect="AspectFill" />
+                    <BoxView>
+                        <BoxView.Background>
+                            <LinearGradientBrush EndPoint="0,1">
+                                <GradientStop Color="#11000000" Offset="0" />
+                                <GradientStop Color="#DD000000" Offset="1" />
+                            </LinearGradientBrush>
+                        </BoxView.Background>
+                    </BoxView>
+                    <Border BackgroundColor="#33FFFFFF" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,3" Margin="16" HorizontalOptions="Start" VerticalOptions="Start">
+                        <Label Text="{Binding WeekDay}" TextColor="White" FontSize="10" FontAttributes="Bold" />
+                    </Border>
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="End" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Name}" TextColor="White" FontSize="22" FontAttributes="Bold" />
+                            <HorizontalStackLayout Spacing="12">
+                                <Label Text="{Binding Duration, StringFormat='⏱ {0}'}" TextColor="White" FontSize="12" />
+                                <Label Text="{Binding ExercisesCount, StringFormat='🏋 {0}'}" TextColor="White" FontSize="12" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                        <Button Grid.Column="1" Text="Iniciar Treino" IsVisible="{Binding CanStart}" Command="{Binding StartCommand}"
+                                BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="20" HeightRequest="40" Padding="16,0" FontSize="13" />
+                        <Border Grid.Column="1" IsVisible="{Binding IsCompleted}" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="10,4" VerticalOptions="End">
+                            <Label Text="✓ CONCLUÍDO" TextColor="White" FontSize="10" FontAttributes="Bold" />
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Exercises}" Spacing="10">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ExerciseItem">
+                        <Border Stroke="{StaticResource Line}" StrokeShape="RoundRectangle 20" Padding="16">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Name}" FontSize="15" FontAttributes="Bold" VerticalOptions="Center" />
+                                    <ImageButton Grid.Column="1" Source="icon_help.png" WidthRequest="28" HeightRequest="28" Padding="4" Opacity="0.5"
+                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WorkoutDayViewModel}}, Path=AskCoachCommand, x:DataType=vm:WorkoutDayViewModel}"
+                                                 CommandParameter="{Binding .}" />
+                                </Grid>
+                                <HorizontalStackLayout Spacing="6">
+                                    <Border BackgroundColor="{StaticResource Soft}" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,3">
+                                        <Label Text="{Binding Sets}" FontSize="10" FontAttributes="Bold" TextColor="#3F3F46" />
+                                    </Border>
+                                    <Border BackgroundColor="{StaticResource Soft}" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,3">
+                                        <Label Text="{Binding Reps}" FontSize="10" FontAttributes="Bold" TextColor="#3F3F46" />
+                                    </Border>
+                                    <Border BackgroundColor="{StaticResource Soft}" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,3">
+                                        <Label Text="{Binding Rest, StringFormat='⏱ {0}'}" FontSize="10" FontAttributes="Bold" TextColor="#3F3F46" />
+                                    </Border>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Button Text="Marcar como concluído" IsVisible="{Binding CanComplete}" Command="{Binding CompleteCommand}"
+                    BackgroundColor="White" TextColor="{StaticResource Ink}" BorderColor="{StaticResource Line}" BorderWidth="1" CornerRadius="24" HeightRequest="48" FontAttributes="Bold" />
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Primary}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

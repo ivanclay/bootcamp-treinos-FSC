@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FitAi.App.ViewModels"
+             x:Class="FitAi.App.Views.PlanPage"
+             x:DataType="vm:PlanViewModel"
+             BackgroundColor="White">
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+        <ScrollView>
+            <VerticalStackLayout Spacing="12" Padding="0,0,0,24">
+                <VerticalStackLayout IsVisible="{Binding HasNoPlan}" Padding="20,40" Spacing="12">
+                    <Label Text="FIT.AI" FontSize="22" FontAttributes="Bold" />
+                    <Label Text="Nenhum plano de treino ativo ainda." TextColor="{StaticResource Muted}" />
+                    <Button Text="Montar com o Coach AI" Command="{Binding OpenCoachCommand}" BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="20" HorizontalOptions="Start" />
+                </VerticalStackLayout>
+
+                <Grid IsVisible="{Binding HasPlan}" HeightRequest="220">
+                    <Image Source="{Binding Cover}" Aspect="AspectFill" />
+                    <BoxView>
+                        <BoxView.Background>
+                            <LinearGradientBrush EndPoint="0,1">
+                                <GradientStop Color="#22000000" Offset="0" />
+                                <GradientStop Color="#DD000000" Offset="1" />
+                            </LinearGradientBrush>
+                        </BoxView.Background>
+                    </BoxView>
+                    <Label Text="FIT.AI" TextColor="White" FontSize="22" FontAttributes="Bold" Margin="20,24" />
+                    <VerticalStackLayout VerticalOptions="End" Padding="20" Spacing="8">
+                        <Border BackgroundColor="{StaticResource Primary}" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,3" HorizontalOptions="Start">
+                            <Label Text="{Binding Goal}" TextColor="White" FontSize="10" FontAttributes="Bold" />
+                        </Border>
+                        <Label Text="{Binding PlanName}" TextColor="White" FontSize="24" FontAttributes="Bold" />
+                        <Label Text="Montado pelo seu professor" IsVisible="{Binding ByTeacher}" TextColor="#CCFFFFFF" FontSize="12" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Days}" Spacing="12" Padding="20,0">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PlanDayItem">
+                            <Grid>
+                                <Border IsVisible="{Binding IsRest}" BackgroundColor="{StaticResource Soft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="16">
+                                    <VerticalStackLayout Spacing="8">
+                                        <Label Text="{Binding WeekDay}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Muted}" />
+                                        <Label Text="⚡ Descanso" FontSize="18" FontAttributes="Bold" />
+                                    </VerticalStackLayout>
+                                </Border>
+                                <Border IsVisible="{Binding IsTraining}" StrokeThickness="0" StrokeShape="RoundRectangle 20" HeightRequest="170">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlanViewModel}}, Path=OpenDayCommand, x:DataType=vm:PlanViewModel}" CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <Grid>
+                                        <Image Source="{Binding Cover}" Aspect="AspectFill" />
+                                        <BoxView>
+                                            <BoxView.Background>
+                                                <LinearGradientBrush EndPoint="0,1">
+                                                    <GradientStop Color="#11000000" Offset="0" />
+                                                    <GradientStop Color="#DD000000" Offset="1" />
+                                                </LinearGradientBrush>
+                                            </BoxView.Background>
+                                        </BoxView>
+                                        <Border BackgroundColor="#33FFFFFF" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,3" Margin="16" HorizontalOptions="Start" VerticalOptions="Start">
+                                            <Label Text="{Binding WeekDay}" TextColor="White" FontSize="10" FontAttributes="Bold" />
+                                        </Border>
+                                        <VerticalStackLayout VerticalOptions="End" Padding="16" Spacing="4">
+                                            <Label Text="{Binding Name}" TextColor="White" FontSize="22" FontAttributes="Bold" />
+                                            <HorizontalStackLayout Spacing="12">
+                                                <Label Text="{Binding Duration, StringFormat='⏱ {0}'}" TextColor="White" FontSize="12" />
+                                                <Label Text="{Binding Exercises, StringFormat='🏋 {0}'}" TextColor="White" FontSize="12" />
+                                            </HorizontalStackLayout>
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

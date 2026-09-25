@@ -1,0 +1,86 @@
+@model AdminDashboardResponse
+@{
+    ViewData["Title"] = "Painel";
+    var isAdmin = User.IsAdmin();
+    var days = Model.CompletedWorkoutsByDay;
+    var max = Math.Max(1, days.Count == 0 ? 1 : days.Max(d => d.Count));
+    const double chartW = 600, chartH = 160, top = 10, bottom = 22;
+    var slot = days.Count == 0 ? chartW : chartW / days.Count;
+    var barW = Math.Max(2, slot - 2); // 2px de respiro entre barras
+}
+<div class="page-head">
+    <div>
+        <h1>Olá, @User.FirstName()</h1>
+        <p>@(isAdmin ? "Visão geral da plataforma" : "Visão geral dos seus alunos")</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" href="/admin/convites">@Icons.Get("ticket", 16) Convidar aluno</a>
+    </div>
+</div>
+
+<div class="kpis">
+    <div class="kpi"><div class="label">Alunos</div><div class="value">@Model.TotalStudents</div><div class="hint">@Model.StudentsWithoutPlan sem plano ativo</div></div>
+    <div class="kpi"><div class="label">Ativos nos últimos 7 dias</div><div class="value">@Model.ActiveStudentsLast7Days</div><div class="hint">treinaram ao menos 1 vez</div></div>
+    <div class="kpi"><div class="label">Treinos concluídos (30 dias)</div><div class="value">@Model.CompletedWorkoutsLast30Days</div><div class="hint">de @Model.SessionsStartedLast30Days iniciados</div></div>
+    <div class="kpi"><div class="label">Taxa de conclusão (30 dias)</div><div class="value">@Format.Percent(Model.ConclusionRateLast30Days)</div><div class="hint">concluídos ÷ iniciados</div></div>
+    @if (isAdmin)
+    {
+        <div class="kpi"><div class="label">Professores</div><div class="value">@Model.TotalTeachers</div><div class="hint">@Model.ActiveWorkoutPlans planos ativos</div></div>
+    }
+    <div class="kpi"><div class="label">Convites pendentes</div><div class="value">@Model.PendingInvites</div><div class="hint">aguardando o primeiro login</div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="panel h-100">
+            <h2>Treinos concluídos por dia (últimos 30 dias)</h2>
+            <svg class="bars" viewBox="0 0 @chartW @(chartH + bottom)" preserveAspectRatio="none" role="img" aria-label="Treinos concluídos por dia">
+                <line class="axis" x1="0" x2="@chartW" y1="@(chartH)" y2="@(chartH)" />
+                @for (var i = 0; i < days.Count; i++)
+                {
+                    var d = days[i];
+                    var h = d.Count == 0 ? 0 : Math.Max(4, (chartH - top) * d.Count / max);
+                    var x = i * slot + 1;
+                    var date = DateOnly.Parse(d.Date);
+                    <g>
+                        <title>@date.ToString("dd/MM"): @d.Count @(d.Count == 1 ? "treino" : "treinos")</title>
+                        <rect class="bar-hit" x="@x" y="0" width="@barW" height="@chartH" />
+                        @if (h > 0)
+                        {
+                            <path class="bar" d="M@(x),@(chartH) V@(chartH - h + 4) q0,-4 4,-4 H@(x + barW - 4) q4,0 4,4 V@(chartH) Z" />
+                        }
+                        @if (i % 5 == 0 || i == days.Count - 1)
+                        {
+                            @* <text> é palavra reservada do Razor; o rótulo do eixo sai como HTML bruto. *@
+                            @Html.Raw($"<text x=\"{(i == 0 ? x : i == days.Count - 1 ? x + barW : x + barW / 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}\" y=\"{chartH + 15}\" text-anchor=\"{(i == 0 ? "start" : i == days.Count - 1 ? "end" : "middle")}\">{date:dd/MM}</text>")
+                        }
+                    </g>
+                }
+            </svg>
+            <div class="small text-secondary mt-1">Pico: @max @(max == 1 ? "treino" : "treinos") em um dia. Passe o mouse nas barras para ver cada dia.</div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="panel h-100">
+            <h2>Treinaram recentemente</h2>
+            @if (Model.RecentlyActiveStudents.Count == 0)
+            {
+                <p class="text-secondary mb-0">Nenhum treino registrado ainda.</p>
+            }
+            else
+            {
+                <table class="table">
+                    <tbody>
+                        @foreach (var s in Model.RecentlyActiveStudents)
+                        {
+                            <tr>
+                                <td><div class="d-flex align-items-center gap-2"><partial name="_UserAvatar" model="s" /><a href="/admin/usuarios/@s.Id">@s.Name</a></div></td>
+                                <td class="text-end text-secondary small">@Format.Date(s.LastWorkoutAt, Clock.TimeZone)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>

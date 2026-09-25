@@ -1,0 +1,97 @@
+@model UsersViewModel
+@{
+    var isTeachers = Model.Role == UserRole.TEACHER;
+    ViewData["Title"] = isTeachers ? "Professores" : "Alunos";
+    var isAdmin = User.IsAdmin();
+    var users = Model.Users;
+    var pages = (int)Math.Ceiling(users.Total / (double)users.PageSize);
+    string PageUrl(int p) => $"/admin/usuarios?q={Uri.EscapeDataString(Model.Search ?? "")}&role={Model.Role}&teacherId={Model.TeacherId}&page={p}";
+}
+<div class="page-head">
+    <div>
+        <h1>@ViewData["Title"]</h1>
+        <p>@users.Total @(users.Total == 1 ? "pessoa" : "pessoas")</p>
+    </div>
+    <a class="btn btn-primary" href="/admin/convites">@Icons.Get("plus", 16) @(isTeachers ? "Convidar professor" : "Convidar aluno")</a>
+</div>
+
+<form class="panel mb-3 d-flex gap-2 flex-wrap" method="get" action="/admin/usuarios">
+    <input class="form-control" style="max-width:320px" name="q" value="@Model.Search" placeholder="Buscar por nome ou e-mail" />
+    @if (isAdmin)
+    {
+        <select class="form-select" style="max-width:180px" name="role">
+            <option value="">Todos os papéis</option>
+            @foreach (var r in new[] { UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN })
+            {
+                <option value="@r" selected="@(Model.Role == r)">@Format.Role(r)</option>
+            }
+        </select>
+        <select class="form-select" style="max-width:220px" name="teacherId">
+            <option value="">Todos os professores</option>
+            @foreach (var t in Model.Teachers)
+            {
+                <option value="@t.Id" selected="@(Model.TeacherId == t.Id)">@t.Name</option>
+            }
+        </select>
+    }
+    else
+    {
+        <input type="hidden" name="role" value="STUDENT" />
+    }
+    <button class="btn btn-outline-primary" type="submit">@Icons.Get("search", 16) Filtrar</button>
+</form>
+
+<div class="panel p-0">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th class="ps-3">Nome</th>
+                <th>Papel</th>
+                @if (!isTeachers) { <th>Professor</th> }
+                <th>Plano</th>
+                <th>Último treino</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (users.Items.Count == 0)
+            {
+                <tr><td colspan="6" class="text-center text-secondary py-4">Ninguém por aqui ainda.</td></tr>
+            }
+            @foreach (var u in users.Items)
+            {
+                <tr>
+                    <td class="ps-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <partial name="_UserAvatar" model="u" />
+                            <div>
+                                <a href="/admin/usuarios/@u.Id" class="fw-semibold">@u.Name</a>
+                                <div class="small text-secondary">@u.Email</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="pill @(u.Role == UserRole.STUDENT ? "" : "brand")">@Format.Role(u.Role)</span>
+                        @if (u.IsBlocked) { <span class="pill danger">Bloqueado</span> }
+                    </td>
+                    @if (!isTeachers) { <td>@(u.TeacherName ?? "—")</td> }
+                    <td>@(u.HasActiveWorkoutPlan ? Html.Raw("<span class=\"pill ok\">Ativo</span>") : Html.Raw("<span class=\"pill warn\">Sem plano</span>"))</td>
+                    <td class="text-secondary">@Format.Date(u.LastWorkoutAt, Clock.TimeZone)</td>
+                    <td class="text-end pe-3"><a class="btn btn-sm btn-outline-primary" href="/admin/usuarios/@u.Id">Abrir</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (pages > 1)
+{
+    <nav class="mt-3">
+        <ul class="pagination">
+            @for (var p = 1; p <= pages; p++)
+            {
+                <li class="page-item @(p == users.Page ? "active" : "")"><a class="page-link" href="@PageUrl(p)">@p</a></li>
+            }
+        </ul>
+    </nav>
+}

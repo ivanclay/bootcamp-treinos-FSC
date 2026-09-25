@@ -1,0 +1,35 @@
+@model EditProfileViewModel
+@{
+    ViewData["Title"] = "Meus dados";
+}
+<div class="titlebar">
+    <a class="icon-btn" href="/perfil" aria-label="Voltar">@Icons.Get("arrow-left", 20)</a>
+    <h1>Meus dados</h1>
+    <span></span>
+</div>
+<form class="page" method="post" asp-antiforgery="true" action="/perfil/editar">
+    @if (Model.Error is not null) { <div class="alert error">@Model.Error</div> }
+    <div class="field">
+        <label for="Name">Nome</label>
+        <input class="input" asp-for="Name" maxlength="120" />
+    </div>
+    <div class="form-grid">
+        <div class="field">
+            <label for="WeightKg">Peso (kg)</label>
+            <input class="input" asp-for="WeightKg" type="number" step="0.1" min="0" required />
+        </div>
+        <div class="field">
+            <label for="HeightInCentimeters">Altura (cm)</label>
+            <input class="input" asp-for="HeightInCentimeters" type="number" min="0" required />
+        </div>
+        <div class="field">
+            <label for="Age">Idade</label>
+            <input class="input" asp-for="Age" type="number" min="0" max="150" required />
+        </div>
+        <div class="field">
+            <label for="BodyFatPercentage">Gordura corporal (%)</label>
+            <input class="input" asp-for="BodyFatPercentage" type="number" min="0" max="100" required />
+        </div>
+    </div>
+    <button class="btn block" type="submit">Salvar</button>
+</form>

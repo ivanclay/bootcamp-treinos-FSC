@@ -1,0 +1,10 @@
+@model string?
+@{
+    ViewData["Title"] = "Ops";
+}
+<div class="error-page">
+    <div class="logo lg">FIT.AI</div>
+    <h1 style="margin:0;font-size:20px">Ops!</h1>
+    <p class="muted" style="margin:0">@(Model ?? "Algo deu errado. Tente de novo em instantes.")</p>
+    <a class="btn" href="/">Voltar ao início</a>
+</div>

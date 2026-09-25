@@ -3,212 +3,84 @@
 - **SEMPRE** use [Conventional Commits](https://www.conventionalcommits.org/) para mensagens de commit. Exemplo: `feat: add start workout session endpoint`, `fix: workout plan validation`, `docs: update architecture rules`.
 - **NUNCA** faça commit sem a permissão explícita do usuário. Sempre aguarde o usuário pedir para commitar.
 
-## Fastify: Rotas de API
+## API: Controllers
 
-- **SEMPRE** siga os princípios do REST para criar rotas. Exemplo: `GET /workout-plans`, `GET /workout-plans/:id/days`.
-- **SEMPRE** crie os arquivos das rotas em @src/routes.
-- **SEMPRE** use `fastify-type-provider-zod` para definir os schemas de request e response de uma rota.
-- **SEMPRE** use Zod v4, **NUNCA** use o Zod v3.
-- **SEMPRE** crie os schemas das operações de criação e atualização dentro de @src/schemas/index.ts.
-- **SEMPRE** use `z.enum(WeekDay)` importado de `../generated/prisma/enums.js` para tipar campos de dia da semana nos schemas. **NUNCA** use `z.string()` para representar WeekDay.
-- **SEMPRE** use o @src/schemas/index.ts para tipar respostas de erro.
-- Uma rota **NUNCA** deve conter regras de negócio, apenas validações de dados (com o Zod) e de autenticação (se necessário).
-- Quando uma rota precisar ser protegida (acessível apenas por usuários autenticados), **SEMPRE** use o `auth.api.getSession` (@src/lib/auth.ts) para recuperar a sessão do usuário.
-- Uma rota deve **SEMPRE** instanciar e chamar um use case.
-- **SEMPRE** trate os erros lançados pelo use case.
-- **SEMPRE** inclua `tags` e `summary` no schema da rota para documentação no Swagger/OpenAPI.
+- **SEMPRE** siga os princípios do REST. Exemplo: `GET /workout-plans`, `GET /workout-plans/{id}/days/{dayId}`.
+- **SEMPRE** crie os controllers em `backend/FitAi.Api/Controllers`, com `[ApiController]`, `[Route]` e `[Tags]`.
+- **SEMPRE** use os DTOs de `shared/FitAi.Contracts` para request e response. Validação de entrada com DataAnnotations nos DTOs.
+- **SEMPRE** use os enums de `FitAi.Contracts` (`WeekDay`, `WorkoutGoal`, `UserRole`) — **NUNCA** `string` para esses campos.
+- Erros de resposta **SEMPRE** no formato `ErrorResponse { error, code }` (códigos em `ErrorCodes`).
+- Um controller **NUNCA** deve conter regras de negócio, apenas validação de entrada e autenticação/autorização.
+- Rotas protegidas: `[Authorize]`; o usuário vem de `ICurrentUser` (papel e bloqueio lidos do banco). Rotas administrativas: `[RequireRoles(UserRole.ADMIN, UserRole.TEACHER)]`.
+- Um controller deve **SEMPRE** chamar um use case (injetado com `[FromServices]`).
+- Os controllers **NÃO** usam try/catch para erros de negócio: o use case lança uma exceção de `Errors/` e o `AppExceptionHandler` a converte no status HTTP correto.
+- **SEMPRE** documente a ação com `/// <summary>` quando o comportamento não for óbvio (aparece no OpenAPI).
 
 ### Exemplo:
 
-```ts
-import { fromNodeHeaders } from "better-auth/node";
-import { FastifyInstance } from "fastify";
-import { ZodTypeProvider } from "fastify-type-provider-zod";
-
-import { NotFoundError } from "../errors/index.js";
-import { auth } from "../lib/auth.js";
-import { ErrorSchema, WorkoutPlanSchema } from "../schemas/index.js";
-import { CreateWorkoutPlan } from "../usecases/CreateWorkoutPlan.js";
-
-export const workoutPlanRoutes = async (app: FastifyInstance) => {
-  app.withTypeProvider<ZodTypeProvider>().route({
-    method: "POST",
-    url: "/",
-    schema: {
-      tags: ["Workout Plan"],
-      summary: "Create a workout plan",
-      body: WorkoutPlanSchema.omit({ id: true }),
-      response: {
-        201: WorkoutPlanSchema,
-        400: ErrorSchema,
-        401: ErrorSchema,
-        404: ErrorSchema,
-        500: ErrorSchema,
-      },
-    },
-    handler: async (request, reply) => {
-      try {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(request.headers),
-        });
-        if (!session) {
-          return reply.status(401).send({
-            error: "Unauthorized",
-            code: "UNAUTHORIZED",
-          });
-        }
-        const createWorkoutPlan = new CreateWorkoutPlan();
-        const result = await createWorkoutPlan.execute({
-          userId: session.user.id,
-          name: request.body.name,
-          workoutDays: request.body.workoutDays,
-        });
-        return reply.status(201).send(result);
-      } catch (error) {
-        app.log.error(error);
-        if (error instanceof NotFoundError) {
-          return reply.status(404).send({
-            error: error.message,
-            code: "NOT_FOUND_ERROR",
-          });
-        }
-        return reply.status(500).send({
-          error: "Internal server error",
-          code: "INTERNAL_SERVER_ERROR",
-        });
-      }
-    },
-  });
-};
+```csharp
+[ApiController]
+[Authorize]
+[Route("workout-plans")]
+[Tags("Workout Plan")]
+public sealed class WorkoutPlansController(ICurrentUser currentUser) : ControllerBase
+{
+    /// <summary>Inicia o treino do dia.</summary>
+    [HttpPost("{workoutPlanId:guid}/days/{workoutDayId:guid}/sessions")]
+    [ProducesResponseType<StartWorkoutSessionResponse>(StatusCodes.Status201Created)]
+    public async Task<IActionResult> StartSession(
+        Guid workoutPlanId, Guid workoutDayId, [FromServices] StartWorkoutSession startWorkoutSession, CancellationToken ct)
+    {
+        var result = await startWorkoutSession.ExecuteAsync(
+            new StartWorkoutSession.Input(currentUser.UserId, workoutPlanId, workoutDayId), ct);
+        return StatusCode(StatusCodes.Status201Created, result);
+    }
+}
 ```
 
-## Use Cases
+## API: Use Cases
 
 - Todas as regras de negócio devem estar concentradas dentro de um use case.
-- Todos os use cases devem ser criados em @src/usecases.
-- Todos os use cases devem ser classes, com um método `execute`.
-- Todos os use cases devem ser nomeados com verbos.
-- Quando um use case receber um parâmetro, ele deve **SEMPRE** ser um DTO (`InputDto`), que é uma interface definida no mesmo arquivo.
-- O retorno de um use case deve **SEMPRE** ser tipado com uma interface `OutputDto`, definida no mesmo arquivo. O use case deve mapear o resultado do banco para o `OutputDto`, **NUNCA** retornando o model do Prisma diretamente. Isso garante desacoplamento entre a camada de negócio e o banco de dados.
-- Ao precisar interagir com o banco de dados, um use case deve **SEMPRE** chamar o Prisma diretamente, e não um repository.
-- **NUNCA** lide com erros nos use cases. Quem lida com os erros (com try, catch) é sempre a rota @src/routes.
-- Caso um use case lance uma exceção, deve ser **SEMPRE** lançado um erro customizado. Esses erros ficam em @src/errors/index.ts. Caso um erro necessário não exista, crie-o.
+- Todos os use cases ficam em `backend/FitAi.Api/UseCases/<Área>/`, um por arquivo.
+- Todos os use cases são classes `sealed` com um método `ExecuteAsync`, nomeadas com verbos.
+- O parâmetro de entrada é **SEMPRE** um record `Input` aninhado na classe.
+- O retorno é **SEMPRE** um DTO de `FitAi.Contracts` (ou um record `Output` aninhado quando for interno à API). **NUNCA** devolva a entidade do EF Core.
+- Ao precisar do banco, o use case usa o `AppDbContext` diretamente (sem repository).
+- Atomicidade: prefira uma única chamada a `SaveChangesAsync` (que já é transacional).
+- **NUNCA** trate erros nos use cases. Lance uma exceção de `Errors/AppExceptions.cs`; se a necessária não existir, crie-a (com status HTTP e código).
+- Mensagens de erro de validação/conflito em português (são exibidas na Web e no App).
+- Use cases são registrados automaticamente no DI (qualquer classe em `FitAi.Api.UseCases` com `ExecuteAsync`).
 
 ### Exemplo:
 
-```ts
-import { NotFoundError } from "../errors/index.js";
-import { WeekDay } from "../generated/prisma/enums.js";
-import { prisma } from "../lib/db.js";
+```csharp
+public sealed class StartWorkoutSession(AppDbContext db, TimeProvider timeProvider)
+{
+    public sealed record Input(string UserId, Guid WorkoutPlanId, Guid WorkoutDayId);
 
-// Data Transfer Object
-interface InputDto {
-  userId: string;
-  name: string;
-  workoutDays: Array<{
-    name: string;
-    weekDay: WeekDay;
-    isRest: boolean;
-    estimatedDurationInSeconds: number;
-    exercises: Array<{
-      order: number;
-      name: string;
-      sets: number;
-      reps: number;
-      restTimeInSeconds: number;
-    }>;
-  }>;
-}
+    public async Task<StartWorkoutSessionResponse> ExecuteAsync(Input input, CancellationToken ct = default)
+    {
+        var plan = await db.WorkoutPlans.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == input.WorkoutPlanId && p.UserId == input.UserId, ct)
+            ?? throw new NotFoundException("Workout plan not found");
+        if (!plan.IsActive) throw new WorkoutPlanNotActiveException("Workout plan is not active");
 
-interface OutputDto {
-  id: string;
-  name: string;
-  workoutDays: Array<{
-    name: string;
-    weekDay: WeekDay;
-    isRest: boolean;
-    estimatedDurationInSeconds: number;
-    exercises: Array<{
-      order: number;
-      name: string;
-      sets: number;
-      reps: number;
-      restTimeInSeconds: number;
-    }>;
-  }>;
-}
-
-export class CreateWorkoutPlan {
-  async execute(dto: InputDto): Promise<OutputDto> {
-    const existingWorkoutPlan = await prisma.workoutPlan.findFirst({
-      where: {
-        isActive: true,
-      },
-    });
-    // Transaction - Atomicidade
-    return prisma.$transaction(async (tx) => {
-      if (existingWorkoutPlan) {
-        await tx.workoutPlan.update({
-          where: { id: existingWorkoutPlan.id },
-          data: { isActive: false },
-        });
-      }
-      const workoutPlan = await tx.workoutPlan.create({
-        data: {
-          id: crypto.randomUUID(),
-          name: dto.name,
-          userId: dto.userId,
-          isActive: true,
-          workoutDays: {
-            create: dto.workoutDays.map((workoutDay) => ({
-              name: workoutDay.name,
-              weekDay: workoutDay.weekDay,
-              isRest: workoutDay.isRest,
-              estimatedDurationInSeconds: workoutDay.estimatedDurationInSeconds,
-              exercises: {
-                create: workoutDay.exercises.map((exercise) => ({
-                  name: exercise.name,
-                  order: exercise.order,
-                  sets: exercise.sets,
-                  reps: exercise.reps,
-                  restTimeInSeconds: exercise.restTimeInSeconds,
-                })),
-              },
-            })),
-          },
-        },
-      });
-      const result = await tx.workoutPlan.findUnique({
-        where: { id: workoutPlan.id },
-        include: {
-          workoutDays: {
-            include: {
-              exercises: true,
-            },
-          },
-        },
-      });
-      if (!result) {
-        throw new NotFoundError("Workout plan not found");
-      }
-      return {
-        id: result.id,
-        name: result.name,
-        workoutDays: result.workoutDays.map((day) => ({
-          name: day.name,
-          weekDay: day.weekDay,
-          isRest: day.isRest,
-          estimatedDurationInSeconds: day.estimatedDurationInSeconds,
-          exercises: day.exercises.map((exercise) => ({
-            order: exercise.order,
-            name: exercise.name,
-            sets: exercise.sets,
-            reps: exercise.reps,
-            restTimeInSeconds: exercise.restTimeInSeconds,
-          })),
-        })),
-      };
-    });
-  }
+        var session = new WorkoutSession { WorkoutDayId = input.WorkoutDayId, StartedAt = timeProvider.GetUtcNow() };
+        db.WorkoutSessions.Add(session);
+        await db.SaveChangesAsync(ct);
+        return new StartWorkoutSessionResponse(session.Id);
+    }
 }
 ```
+
+## Web (MVC)
+
+- A Web **NUNCA** acessa o banco: toda leitura/escrita passa pelo `ApiClient` (HTTP para a API).
+- Telas do aluno em `Controllers/` + `Views/`; área administrativa em `Areas/Admin`.
+- Formulários POST sempre com antiforgery (`asp-antiforgery="true"` quando o `action` é literal).
+- Erros da API são tratados pelo `ApiExceptionFilter`; capture `ApiException` na action só para mostrar mensagens de validação no próprio formulário.
+
+## App (MAUI)
+
+- MVVM com CommunityToolkit.Mvvm (`[ObservableProperty]`, `[RelayCommand]`); páginas com `x:DataType` (bindings compiladas).
+- Toda chamada à API passa por `Services/ApiClient`; token no `SecureStorage` via `AuthService`.

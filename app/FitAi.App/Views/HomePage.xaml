@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:FitAi.App.ViewModels"
+             x:Class="FitAi.App.Views.HomePage"
+             x:DataType="vm:HomeViewModel"
+             BackgroundColor="White">
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadCommand}">
+        <ScrollView>
+            <VerticalStackLayout Spacing="20" Padding="0,0,0,24">
+                <!-- Hero -->
+                <Grid HeightRequest="320">
+                    <Image Source="{Binding HeroImage}" Aspect="AspectFill" />
+                    <BoxView>
+                        <BoxView.Background>
+                            <LinearGradientBrush EndPoint="0,1">
+                                <GradientStop Color="#22000000" Offset="0" />
+                                <GradientStop Color="#DD000000" Offset="1" />
+                            </LinearGradientBrush>
+                        </BoxView.Background>
+                    </BoxView>
+                    <Label Text="FIT.AI" TextColor="White" FontSize="22" FontAttributes="Bold" Margin="20,24" />
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="End" Padding="20">
+                        <VerticalStackLayout>
+                            <Label Text="{Binding Greeting}" TextColor="White" FontSize="26" FontAttributes="Bold" />
+                            <Label Text="{Binding Subtitle}" TextColor="#CCFFFFFF" FontSize="13" />
+                        </VerticalStackLayout>
+                        <Button Grid.Column="1" Text="Bora!" IsVisible="{Binding HasTraining}" Command="{Binding OpenTodayCommand}"
+                                BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="20" HeightRequest="40" Padding="20,0" />
+                        <Button Grid.Column="1" Text="Criar plano" IsVisible="{Binding HasNoPlan}" Command="{Binding OpenCoachCommand}"
+                                BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="20" HeightRequest="40" Padding="20,0" />
+                    </Grid>
+                </Grid>
+
+                <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextColor="{StaticResource Danger}" Margin="20,0" />
+
+                <!-- Consistência -->
+                <VerticalStackLayout Spacing="10" Padding="20,0">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Consistência" FontSize="16" FontAttributes="Bold" />
+                        <Label Grid.Column="1" Text="Ver histórico" TextColor="{StaticResource Primary}" FontSize="12">
+                            <Label.GestureRecognizers><TapGestureRecognizer Command="{Binding OpenStatsCommand}" /></Label.GestureRecognizers>
+                        </Label>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Border Stroke="{StaticResource Line}" StrokeShape="RoundRectangle 20" Padding="14,12">
+                            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Week}" Spacing="14" HorizontalOptions="Center">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:WeekDot">
+                                        <VerticalStackLayout Spacing="6">
+                                            <Border WidthRequest="20" HeightRequest="20" StrokeShape="RoundRectangle 6" StrokeThickness="1.5"
+                                                    BackgroundColor="{Binding Fill}" Stroke="{Binding Stroke}" />
+                                            <Label Text="{Binding Initial}" FontSize="11" TextColor="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" BackgroundColor="{StaticResource FlameSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="16,0">
+                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                <Label Text="🔥" FontSize="18" VerticalOptions="Center" />
+                                <Label Text="{Binding Streak}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </VerticalStackLayout>
+
+                <!-- Treino de hoje -->
+                <VerticalStackLayout Spacing="10" Padding="20,0">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Treino de Hoje" FontSize="16" FontAttributes="Bold" />
+                        <Label Grid.Column="1" Text="Ver treinos" TextColor="{StaticResource Primary}" FontSize="12">
+                            <Label.GestureRecognizers><TapGestureRecognizer Command="{Binding OpenPlanCommand}" /></Label.GestureRecognizers>
+                        </Label>
+                    </Grid>
+
+                    <Border IsVisible="{Binding HasNoPlan}" Stroke="#D4D4D8" StrokeDashArray="4,3" StrokeShape="RoundRectangle 20" Padding="24">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Você ainda não tem um plano de treino ativo." TextColor="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                            <Button Text="Montar com o Coach AI" Command="{Binding OpenCoachCommand}" BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="20" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border IsVisible="{Binding IsRestDay}" BackgroundColor="{StaticResource Soft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="16">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="{Binding TodayWeekDay}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Muted}" />
+                            <Label Text="⚡ Descanso" FontSize="18" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border IsVisible="{Binding HasTraining}" StrokeThickness="0" StrokeShape="RoundRectangle 20" HeightRequest="190">
+                        <Border.GestureRecognizers><TapGestureRecognizer Command="{Binding OpenTodayCommand}" /></Border.GestureRecognizers>
+                        <Grid>
+                            <Image Source="{Binding TodayCover}" Aspect="AspectFill" />
+                            <BoxView>
+                                <BoxView.Background>
+                                    <LinearGradientBrush EndPoint="0,1">
+                                        <GradientStop Color="#11000000" Offset="0" />
+                                        <GradientStop Color="#DD000000" Offset="1" />
+                                    </LinearGradientBrush>
+                                </BoxView.Background>
+                            </BoxView>
+                            <Border BackgroundColor="#33FFFFFF" StrokeThickness="0" StrokeShape="RoundRectangle 10" Padding="8,3" Margin="16" HorizontalOptions="Start" VerticalOptions="Start">
+                                <Label Text="{Binding TodayWeekDay}" TextColor="White" FontSize="10" FontAttributes="Bold" />
+                            </Border>
+                            <VerticalStackLayout VerticalOptions="End" Padding="16" Spacing="4">
+                                <Label Text="{Binding TodayName}" TextColor="White" FontSize="22" FontAttributes="Bold" />
+                                <HorizontalStackLayout Spacing="12">
+                                    <Label Text="{Binding TodayDuration, StringFormat='⏱ {0}'}" TextColor="White" FontSize="12" />
+                                    <Label Text="{Binding TodayExercises, StringFormat='🏋 {0}'}" TextColor="White" FontSize="12" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>
