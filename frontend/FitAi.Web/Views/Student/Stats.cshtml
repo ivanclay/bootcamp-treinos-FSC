@@ -37,6 +37,11 @@
         </div>
     </section>
 
+    @if (stats?.HistoryLimitedFrom is { } limitedFrom)
+    {
+        <div class="alert info">No Plano Básico a evolução mostra os últimos dias (desde @DateOnly.Parse(limitedFrom).ToString("dd/MM")). Seu histórico completo continua salvo e aparece com o plano Pro do seu professor.</div>
+    }
+
     @if (stats is null)
     {
         <div class="empty">Crie um plano de treino para acompanhar sua evolução.<a class="btn sm" href="/coach">Falar com o Coach AI</a></div>

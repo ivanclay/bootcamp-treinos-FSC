@@ -1,3 +1,4 @@
+using FitAi.Api.Billing;
 using FitAi.Api.Data;
 using FitAi.Api.Entities;
 using FitAi.Api.Errors;
@@ -13,7 +14,8 @@ namespace FitAi.Api.UseCases.Auth;
 /// e-mails de <c>Auth:AdminEmails</c> viram ADMIN; convite de professor promove na hora;
 /// convite de aluno só vincula automaticamente contas novas (as existentes precisam aceitar).
 /// </summary>
-public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOptions> authOptions, TimeProvider timeProvider)
+public sealed class SignInWithExternalLogin(
+    AppDbContext db, IOptions<AuthOptions> authOptions, TimeProvider timeProvider, PlanService planService)
 {
     public sealed record Input(string Provider, string ProviderKey, string Email, string? Name, string? Image, bool EmailVerified);
 
@@ -61,6 +63,20 @@ public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOption
         return new Output(user.Id);
     }
 
+    /// <summary>Convite já contava como vaga; se o professor ficou sem vaga, o convite continua pendente.</summary>
+    private async Task<bool> TeacherHasRoomAsync(string teacherId, CancellationToken ct)
+    {
+        try
+        {
+            await planService.EnsureTeacherCanAddStudentAsync(teacherId, countPendingInvites: false, ct);
+            return true;
+        }
+        catch (PlanLimitException)
+        {
+            return false;
+        }
+    }
+
     private async Task ApplyPendingInvitesAsync(User user, string email, bool isNewUser, CancellationToken ct)
     {
         var invites = await db.EmailInvites
@@ -86,7 +102,8 @@ public sealed class SignInWithExternalLogin(AppDbContext db, IOptions<AuthOption
         // Convite de aluno só é aplicado automaticamente para quem está se cadastrando agora (entrou pelo convite).
         // Quem já tinha conta decide no Perfil se aceita — o professor passa a ver os dados do aluno.
         var studentInvite = invites.FirstOrDefault(i => i.Role == UserRole.STUDENT && i.TeacherId != null);
-        if (isNewUser && studentInvite is not null && user.Role == UserRole.STUDENT && user.TeacherId is null)
+        if (isNewUser && studentInvite is not null && user.Role == UserRole.STUDENT && user.TeacherId is null
+            && await TeacherHasRoomAsync(studentInvite.TeacherId!, ct))
         {
             user.TeacherId = studentInvite.TeacherId;
             studentInvite.AcceptedAt = now;

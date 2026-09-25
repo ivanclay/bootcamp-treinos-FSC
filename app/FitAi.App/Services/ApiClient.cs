@@ -43,6 +43,7 @@ public sealed class ApiClient
     public Task<IReadOnlyList<PendingInviteResponse>> ListPendingInvitesAsync() => Send<IReadOnlyList<PendingInviteResponse>>(HttpMethod.Get, "me/invites");
     public Task<TeacherLinkResponse> AcceptInviteAsync(Guid id) => Send<TeacherLinkResponse>(HttpMethod.Post, $"me/invites/{id}/accept");
     public Task<object?> DeclineInviteAsync(Guid id) => Send<object?>(HttpMethod.Post, $"me/invites/{id}/decline");
+    public Task<MyPlanResponse> GetMyPlanAsync() => Send<MyPlanResponse>(HttpMethod.Get, "me/plan");
     public Task<StatsResponse> GetStatsAsync(DateOnly from, DateOnly to) => Send<StatsResponse>(HttpMethod.Get, $"stats?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
     public Task<IReadOnlyList<WorkoutPlanResponse>> ListActivePlansAsync() => Send<IReadOnlyList<WorkoutPlanResponse>>(HttpMethod.Get, "workout-plans?active=true");
     public Task<WorkoutDayResponse> GetWorkoutDayAsync(Guid planId, Guid dayId) => Send<WorkoutDayResponse>(HttpMethod.Get, $"workout-plans/{planId}/days/{dayId}");

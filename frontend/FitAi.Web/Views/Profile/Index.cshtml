@@ -22,7 +22,7 @@
         }
         <div>
             <h1>@user.Name</h1>
-            <p>@(user.TeacherName is not null ? $"Professor: {user.TeacherName}" : Format.Role(user.Role))</p>
+            <p>@Format.Plan(Model.Plan.Plan)@(user.TeacherName is not null ? $" · Professor: {user.TeacherName}" : user.Role != UserRole.STUDENT ? $" · {Format.Role(user.Role)}" : "")</p>
         </div>
     </div>
 
@@ -42,6 +42,21 @@
             <div class="stat"><span class="badge">@Icons.Get("user", 16)</span><strong>@data.Age</strong><span>ANOS</span></div>
         </div>
         <a class="btn outline block" href="/perfil/editar">@Icons.Get("edit", 16) Editar dados</a>
+    }
+
+    @if (Model.Plan.Plan == PlanType.FREE && Model.Plan.Limits.CoachMessagesPerMonth is { } coachLimit)
+    {
+        var used = Math.Min(Model.Plan.CoachMessagesUsedThisMonth, coachLimit);
+        <div class="card stack">
+            <div class="row between"><strong>Plano Básico</strong><span class="small muted">este mês</span></div>
+            <div class="small">Coach AI: <strong>@used</strong> de @coachLimit mensagens</div>
+            <div style="height:6px;background:var(--bg-soft);border-radius:4px"><div style="height:6px;width:@(used * 100 / Math.Max(1, coachLimit))%;background:var(--brand);border-radius:4px"></div></div>
+            @if (Model.Plan.Limits.AiPlansPerMonth is { } planLimit)
+            {
+                <div class="small">Planos montados pela IA: <strong>@Math.Min(Model.Plan.AiPlansCreatedThisMonth, planLimit)</strong> de @planLimit</div>
+            }
+            <span class="small muted">@(user.TeacherName is not null ? $"Quando {user.TeacherName} assinar o Pro, esses limites acabam." : "Com um professor no plano Pro, esses limites acabam.")</span>
+        </div>
     }
 
     @foreach (var invite in Model.PendingInvites)

@@ -15,8 +15,9 @@ public sealed class ProfileController(ApiClient api) : Controller
         var me = await api.GetCurrentUserAsync(ct);
         var trainData = await api.GetTrainDataAsync(ct);
         var invites = await api.ListPendingInvitesAsync(ct);
+        var plan = await api.GetMyPlanAsync(ct);
         ViewData["Nav"] = "profile";
-        return View(new ProfileViewModel(me, trainData, invites));
+        return View(new ProfileViewModel(me, trainData, invites, plan));
     }
 
     [HttpGet("/perfil/editar")]

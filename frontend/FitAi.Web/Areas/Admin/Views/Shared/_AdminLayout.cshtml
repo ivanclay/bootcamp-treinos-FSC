@@ -30,6 +30,10 @@
                     <a class="nav-link @(Context.Request.Query["role"] == "TEACHER" ? "active" : "")" href="/admin/usuarios?role=TEACHER">@Icons.Get("user", 18) Professores</a>
                 }
                 <a class="nav-link @Active("/admin/convites")" href="/admin/convites">@Icons.Get("ticket", 18) Convites</a>
+                @if (User.Role() == UserRole.TEACHER)
+                {
+                    <a class="nav-link @Active("/admin/assinatura")" href="/admin/assinatura">@Icons.Get("zap", 18) Assinatura</a>
+                }
                 @if (isAdmin)
                 {
                     <a class="nav-link @Active("/admin/ia")" href="/admin/ia">@Icons.Get("sparkles", 18) Coach AI</a>

@@ -42,6 +42,36 @@ public static class Format
         _ => "Aluno",
     };
 
+    public static string Money(decimal value) => value.ToString("C", PtBr);
+
+    public static string Plan(PlanType plan) => plan == PlanType.PRO ? "Plano Pro" : "Plano Básico";
+
+    public static string Cycle(BillingCycle cycle) => cycle == BillingCycle.YEARLY ? "Anual" : "Mensal";
+
+    public static string Method(PaymentMethod method) => method switch
+    {
+        PaymentMethod.PIX => "PIX",
+        PaymentMethod.BOLETO => "Boleto",
+        _ => "Cartão de crédito",
+    };
+
+    public static string SubscriptionStatus(SubscriptionStatus status) => status switch
+    {
+        FitAi.Contracts.SubscriptionStatus.ACTIVE => "Ativa",
+        FitAi.Contracts.SubscriptionStatus.PAST_DUE => "Pagamento atrasado",
+        FitAi.Contracts.SubscriptionStatus.CANCELED => "Cancelada",
+        _ => "Aguardando pagamento",
+    };
+
+    public static string PaymentStatus(PaymentStatus status) => status switch
+    {
+        FitAi.Contracts.PaymentStatus.CONFIRMED or FitAi.Contracts.PaymentStatus.RECEIVED => "Pago",
+        FitAi.Contracts.PaymentStatus.OVERDUE => "Vencido",
+        FitAi.Contracts.PaymentStatus.REFUNDED => "Estornado",
+        FitAi.Contracts.PaymentStatus.CANCELED => "Cancelado",
+        _ => "Em aberto",
+    };
+
     public static string Minutes(int seconds) => $"{Math.Max(1, (int)Math.Round(seconds / 60.0))}min";
 
     public static string Rest(int seconds) => seconds >= 60 && seconds % 60 == 0 ? $"{seconds / 60}MIN" : $"{seconds}S";

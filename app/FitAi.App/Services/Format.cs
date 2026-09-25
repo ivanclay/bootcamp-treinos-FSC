@@ -61,6 +61,7 @@ public static class Format
         ApiException { Code: ErrorCodes.AiNotConfigured } => "O Coach AI ainda não foi configurado.",
         ApiException { Code: ErrorCodes.InvalidInviteCode } => "Código de convite inválido ou expirado.",
         ApiException { Code: ErrorCodes.SessionAlreadyStarted } => "Você já iniciou este treino hoje.",
+        ApiException { Code: ErrorCodes.PlanLimitReached } limit => limit.Message,
         ApiException { Code: ErrorCodes.RateLimited } => "Muitas mensagens em pouco tempo. Aguarde um minuto.",
         ApiException { Code: ErrorCodes.Validation or ErrorCodes.Conflict } api => api.Message,
         ApiException => "Algo deu errado. Tente de novo.",

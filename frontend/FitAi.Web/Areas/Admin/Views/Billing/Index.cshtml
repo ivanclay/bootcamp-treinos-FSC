@@ -1,0 +1,141 @@
+@model BillingStatusResponse
+@{
+    ViewData["Title"] = "Assinatura";
+    var sub = Model.Subscription;
+    var isPro = Model.EffectivePlan == PlanType.PRO;
+    var free = Model.FreeLimits;
+    var hasPending = sub is { Status: SubscriptionStatus.PENDING };
+}
+<div class="page-head">
+    <div>
+        <h1>Assinatura</h1>
+        <p>O plano do professor vale para todos os alunos dele.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="panel h-100">
+            <h2>Seu plano</h2>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="pill @(isPro ? "brand" : "")" style="font-size:13px">@Format.Plan(Model.EffectivePlan)</span>
+                @if (sub is not null && sub.Status != SubscriptionStatus.PENDING)
+                {
+                    <span class="pill @(sub.Status == SubscriptionStatus.ACTIVE ? "ok" : "warn")">@Format.SubscriptionStatus(sub.Status)</span>
+                }
+            </div>
+            @if (isPro && sub is not null)
+            {
+                <p class="mb-1">@Format.Cycle(sub.Cycle) · @Format.Money(sub.Price) · @Format.Method(sub.Method)</p>
+                @if (sub.CancelsAtPeriodEnd)
+                {
+                    <div class="alert alert-warning py-2 small mb-2">Cancelada: o Pro vale até <strong>@Format.Date(sub.CurrentPeriodEnd, Clock.TimeZone)</strong>. Depois disso, seus dados continuam salvos e os limites do plano gratuito voltam a valer.</div>
+                }
+                else if (sub.InGracePeriod)
+                {
+                    <div class="alert alert-warning py-2 small mb-2">O pagamento da renovação está atrasado. Regularize para não voltar ao plano gratuito.</div>
+                }
+                else
+                {
+                    <p class="text-secondary small">Renova em @Format.Date(sub.CurrentPeriodEnd, Clock.TimeZone).</p>
+                }
+                @if (!sub.CancelsAtPeriodEnd)
+                {
+                    <form method="post" action="/admin/assinatura/cancelar" asp-antiforgery="true" onsubmit="return confirm('Cancelar a assinatura? O Pro continua valendo até o fim do período já pago.')">
+                        <button class="btn btn-sm btn-outline-danger">Cancelar assinatura</button>
+                    </form>
+                }
+            }
+            else
+            {
+                <p class="mb-1"><strong>@Model.StudentsCount</strong> de @free.MaxStudents alunos</p>
+                <div class="progress mb-3" style="height:8px"><div class="progress-bar" style="width:@(Math.Min(100, Model.StudentsCount * 100 / Math.Max(1, free.MaxStudents ?? 1)))%"></div></div>
+                @if (hasPending)
+                {
+                    <a class="btn btn-primary btn-sm" href="/admin/assinatura/pagamento">Ver pagamento pendente</a>
+                }
+            }
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="panel h-100">
+            <h2>Planos</h2>
+            <table class="table table-sm">
+                <thead><tr><th></th><th>Básico (gratuito)</th><th>Pro</th></tr></thead>
+                <tbody>
+                    <tr><td>Alunos</td><td>até @free.MaxStudents</td><td>ilimitados</td></tr>
+                    <tr><td>Mensagens ao Coach AI (por aluno)</td><td>@free.CoachMessagesPerMonth por mês</td><td>ilimitadas</td></tr>
+                    <tr><td>Planos montados pela IA (por aluno)</td><td>@free.AiPlansPerMonth por mês</td><td>ilimitados</td></tr>
+                    <tr><td>Histórico de evolução</td><td>últimos @free.HistoryDays dias</td><td>completo</td></tr>
+                    <tr><td>Preço</td><td>R$ 0</td><td><strong>@Format.Money(Model.Prices.MonthlyPrice)</strong>/mês ou <strong>@Format.Money(Model.Prices.YearlyPrice)</strong>/ano</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (!isPro)
+{
+    <form class="panel mb-3" method="post" action="/admin/assinatura/checkout" asp-antiforgery="true">
+        <h2>Assinar o Pro</h2>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Nome para a cobrança</label>
+                <input class="form-control" name="Name" value="@User.Identity?.Name" required maxlength="120" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">E-mail</label>
+                <input class="form-control" type="email" name="Email" value="@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value" required maxlength="200" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">CPF ou CNPJ</label>
+                <input class="form-control" name="CpfCnpj" required maxlength="20" placeholder="000.000.000-00" inputmode="numeric" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">Ciclo</label>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="Cycle" id="c-m" value="MONTHLY" checked />
+                    <label class="btn btn-outline-primary" for="c-m">Mensal · @Format.Money(Model.Prices.MonthlyPrice)</label>
+                    <input type="radio" class="btn-check" name="Cycle" id="c-y" value="YEARLY" />
+                    <label class="btn btn-outline-primary" for="c-y">Anual · @Format.Money(Model.Prices.YearlyPrice)</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">Forma de pagamento</label>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="Method" id="m-pix" value="PIX" checked />
+                    <label class="btn btn-outline-primary" for="m-pix">PIX</label>
+                    <input type="radio" class="btn-check" name="Method" id="m-boleto" value="BOLETO" />
+                    <label class="btn btn-outline-primary" for="m-boleto">Boleto</label>
+                    <input type="radio" class="btn-check" name="Method" id="m-card" value="CREDIT_CARD" />
+                    <label class="btn btn-outline-primary" for="m-card">Cartão</label>
+                </div>
+            </div>
+        </div>
+        <p class="text-secondary small mt-3 mb-2">O pagamento é processado pelo Asaas. Cartão e boleto são pagos na fatura do Asaas — o FIT.AI não recebe os dados do seu cartão. O plano é ativado assim que o pagamento é confirmado.</p>
+        <button class="btn btn-primary" type="submit">Continuar para o pagamento</button>
+    </form>
+}
+
+@if (sub is { Payments.Count: > 0 })
+{
+    <div class="panel p-0">
+        <h2 class="px-3 pt-3">Cobranças</h2>
+        <table class="table">
+            <thead><tr><th class="ps-3">Vencimento</th><th>Valor</th><th>Forma</th><th>Status</th><th>Pago em</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var p in sub.Payments)
+                {
+                    <tr>
+                        <td class="ps-3">@p.DueDate.ToString("dd/MM/yyyy")</td>
+                        <td>@Format.Money(p.Value)</td>
+                        <td>@Format.Method(p.Method)</td>
+                        <td><span class="pill @(p.Status is PaymentStatus.CONFIRMED or PaymentStatus.RECEIVED ? "ok" : p.Status is PaymentStatus.OVERDUE ? "danger" : "")">@Format.PaymentStatus(p.Status)</span></td>
+                        <td>@Format.Date(p.PaidAt, Clock.TimeZone)</td>
+                        <td class="text-end pe-3">@if (p.InvoiceUrl is not null) { <a href="@p.InvoiceUrl" target="_blank" rel="noopener noreferrer">Fatura</a> }</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

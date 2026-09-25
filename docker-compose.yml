@@ -37,6 +37,10 @@ services:
       Auth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       Auth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
       YouTube__ApiKey: ${YOUTUBE_API_KEY:-}
+      Payments__Provider: ${PAYMENTS_PROVIDER:-Fake}
+      Asaas__ApiKey: ${ASAAS_API_KEY:-}
+      Asaas__WebhookToken: ${ASAAS_WEBHOOK_TOKEN:-}
+      Asaas__BaseUrl: ${ASAAS_BASE_URL:-https://api-sandbox.asaas.com/v3/}
     ports:
       - "127.0.0.1:8080:8080"
 

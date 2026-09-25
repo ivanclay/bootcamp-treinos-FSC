@@ -44,6 +44,11 @@ public sealed class MeController(ICurrentUser currentUser) : ControllerBase
             request.Age,
             request.BodyFatPercentage), ct);
 
+    /// <summary>Plano efetivo (o aluno herda o do professor) e o uso do mês.</summary>
+    [HttpGet("plan")]
+    public async Task<MyPlanResponse> GetPlan([FromServices] GetMyPlan getMyPlan, CancellationToken ct) =>
+        await getMyPlan.ExecuteAsync(new GetMyPlan.Input(await currentUser.GetAsync(ct)), ct);
+
     /// <summary>Convites de professor aguardando o aceite do aluno.</summary>
     [HttpGet("invites")]
     public Task<IReadOnlyList<PendingInviteResponse>> ListInvites([FromServices] ListPendingInvites listPendingInvites, CancellationToken ct) =>

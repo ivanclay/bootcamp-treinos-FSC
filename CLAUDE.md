@@ -50,6 +50,7 @@ dotnet build app/FitAi.App -p:TargetFrameworks=net10.0 -p:OutputType=Library -p:
 - **Errors** (`Errors/`) — Excecoes de negocio (`NotFoundException`, `ConflictException`...) convertidas em `{ error, code }` pelo `AppExceptionHandler`.
 - **Domain** (`Domain/WorkoutStreak.cs`) — Calculo puro da sequencia.
 - **Ai** (`Ai/`) — Prompt, fabrica de `IChatClient` por provedor e configuracoes editaveis no painel.
+- **Billing** (`Billing/`) e **Payments** (`Payments/`) — Plano efetivo e limites (`PlanService`, `PlanRules`), gateway de pagamento (`IPaymentGateway`: `AsaasPaymentGateway` real e `FakePaymentGateway` em memoria) e mapeamento do webhook do Asaas. O professor assina; o aluno herda o plano do professor.
 
 ### Autenticacao e papeis
 
@@ -65,4 +66,6 @@ Cookie de login guarda o JWT (claim `access_token`); `ApiClient` + `BearerTokenH
 - Datas em UTC na API (`DateTimeOffset`/`timestamptz`); a Web converte para `App:TimeZone`.
 - Mensagens de erro de validacao da API em portugues (sao exibidas nas telas).
 - Segredos (JWT, Google, chaves de IA, YouTube) em User Secrets ou variaveis de ambiente, nunca no `appsettings.json`.
+- Limites do plano gratuito sao checados no servidor via `PlanService` e lancam `PlanLimitException` (403 `PLAN_LIMIT_REACHED`) com mensagem em portugues.
+- Pagamentos: preco sempre de `Plans:*`; webhook e a fonte da verdade; datas do provedor viram UTC em `PaymentMapping`; nunca logar chave nem CPF/CNPJ.
 - Seguranca: ver `SECURITY.md`. Login exige PKCE; rotas sensiveis usam `[EnableRateLimiting]`; texto vindo da IA e sempre sanitizado antes de virar HTML.

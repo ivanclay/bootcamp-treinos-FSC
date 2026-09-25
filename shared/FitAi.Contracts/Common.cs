@@ -18,5 +18,7 @@ public static class ErrorCodes
     public const string ExternalService = "EXTERNAL_SERVICE_ERROR";
     public const string AiNotConfigured = "AI_NOT_CONFIGURED";
     public const string RateLimited = "RATE_LIMITED";
+    public const string PlanLimitReached = "PLAN_LIMIT_REACHED";
+    public const string PaymentProvider = "PAYMENT_PROVIDER_ERROR";
     public const string Internal = "INTERNAL_SERVER_ERROR";
 }

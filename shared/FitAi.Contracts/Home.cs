@@ -21,4 +21,5 @@ public sealed record StatsResponse(
     IReadOnlyDictionary<string, DayConsistency> ConsistencyByDay,
     int CompletedWorkoutsCount,
     double ConclusionRate,
-    long TotalTimeInSeconds);
+    long TotalTimeInSeconds,
+    string? HistoryLimitedFrom = null);

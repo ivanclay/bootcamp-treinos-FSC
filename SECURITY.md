@@ -27,6 +27,15 @@ Revisão feita em 25/09/2026 sobre a versão .NET. Este arquivo registra o que j
 
 Os limites ficam na seção `RateLimit` do `appsettings.json` da API.
 
+## Pagamentos
+
+- **Nenhum dado de cartão** passa pelo servidor: PIX pelo QR do Asaas; cartão e boleto na fatura hospedada do Asaas.
+- **Preço definido no servidor** (`Plans:Pro`), nunca pelo formulário; CPF/CNPJ validado pelos dígitos verificadores e nunca registrado em log (só método, caminho e status das chamadas ao Asaas).
+- **Webhook** `POST /webhooks/asaas`: anônimo por natureza, autenticado pelo token `asaas-access-token` comparado em tempo constante (token vazio rejeita tudo), corpo limitado a 64 KB, idempotência atômica (`INSERT ... ON CONFLICT DO NOTHING` antes de qualquer efeito, liberada se falhar) e 500 em falha para o Asaas reenviar.
+- **Segredos** (`Asaas__ApiKey`, `Asaas__WebhookToken`) só por variável de ambiente/cofre. Chaves de sandbox e de produção são diferentes: não misture.
+- **Simulação de pagamento** só existe com `Payments:Provider=Fake` **e** em Development.
+- Pendente: o corpo do webhook é aceito como verdade quando o token confere. Para defesa extra contra vazamento do token, reconsulte a cobrança no Asaas (`GET payments/{id}`) antes de aplicar.
+
 ## Pendências conhecidas
 
 - **Imagens de capa externas:** professores e a IA podem cadastrar URLs de qualquer site; o navegador do aluno carrega essas imagens (o site externo vê o acesso). Considere restringir a `/covers/...` ou a uma lista de domínios.
@@ -44,6 +53,7 @@ Os limites ficam na seção `RateLimit` do `appsettings.json` da API.
 - [ ] TLS no proxy/ingress e `ReverseProxy:TrustForwardedHeaders=true`.
 - [ ] App: `AppConfig.ApiBaseUrl` de Release apontando para a URL HTTPS da API.
 - [ ] Revisar os limites de `RateLimit` conforme o uso real.
+- [ ] Pagamentos: `Payments__Provider=Asaas`, chave de **produção** em `Asaas__ApiKey`, `Asaas__BaseUrl=https://api.asaas.com/v3/`, `Asaas__WebhookToken` forte e o mesmo cadastrado no painel; verificação no sandbox concluída (README).
 
 ## Como reportar
 

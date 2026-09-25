@@ -1,0 +1,63 @@
+@model CheckoutResponse
+@{
+    ViewData["Title"] = "Pagamento";
+    var payment = Model.Payment;
+    var canSimulate = ViewData["CanSimulate"] as bool? ?? false;
+}
+<div class="page-head">
+    <div>
+        <h1>Aguardando pagamento</h1>
+        <p>@Format.Cycle(Model.Subscription.Cycle) · @Format.Money(payment.Value) · @Format.Method(payment.Method)</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/admin/assinatura">Voltar</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="panel text-center">
+            @if (Model.Pix is { } pix)
+            {
+                <h2>Pague com PIX</h2>
+                <img src="data:image/png;base64,@pix.EncodedImage" alt="QR Code PIX" width="220" height="220" class="mb-3" style="image-rendering:pixelated" />
+                <div class="input-group mb-2">
+                    <input class="form-control form-control-sm" id="pix-payload" value="@pix.Payload" readonly />
+                    <button class="btn btn-sm btn-outline-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('pix-payload').value); this.textContent='Copiado!'">Copiar código</button>
+                </div>
+                @if (pix.ExpirationDate is { } exp)
+                {
+                    <p class="small text-secondary mb-0">O QR vale até @Format.Date(exp, Clock.TimeZone).</p>
+                }
+            }
+            else
+            {
+                <h2>@(payment.Method == PaymentMethod.BOLETO ? "Pague o boleto" : "Pague com cartão")</h2>
+                <p class="text-secondary">A fatura abre no site do Asaas, nosso processador de pagamentos. @(payment.Method == PaymentMethod.CREDIT_CARD ? "Os dados do cartão são digitados lá, não no FIT.AI." : "")</p>
+                @if (payment.InvoiceUrl is not null)
+                {
+                    <a class="btn btn-primary" href="@payment.InvoiceUrl" target="_blank" rel="noopener noreferrer">Abrir fatura</a>
+                }
+                @if (payment.BankSlipUrl is not null)
+                {
+                    <a class="btn btn-outline-primary ms-2" href="@payment.BankSlipUrl" target="_blank" rel="noopener noreferrer">Baixar boleto</a>
+                }
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="panel">
+            <h2>Depois de pagar</h2>
+            <p class="text-secondary">A confirmação chega automaticamente do Asaas: PIX em segundos, cartão em minutos e boleto em até 3 dias úteis. Você pode fechar esta página — o plano Pro é ativado assim que o pagamento for confirmado.</p>
+            <form method="post" action="/admin/assinatura/conferir" asp-antiforgery="true" class="d-inline">
+                <button class="btn btn-primary" type="submit">Já paguei</button>
+            </form>
+            @if (canSimulate)
+            {
+                <hr />
+                <p class="small text-secondary mb-2"><strong>Ambiente de desenvolvimento</strong> (provedor de pagamento Fake): simule o aviso de pagamento que o Asaas enviaria.</p>
+                <form method="post" action="/admin/assinatura/simular-pagamento" asp-antiforgery="true">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">Simular pagamento confirmado</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

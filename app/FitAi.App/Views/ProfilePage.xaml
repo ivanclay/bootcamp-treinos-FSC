@@ -24,6 +24,13 @@
                 </VerticalStackLayout>
             </Grid>
 
+            <Border IsVisible="{Binding IsFreePlan}" BackgroundColor="{StaticResource Soft}" StrokeThickness="0" StrokeShape="RoundRectangle 16" Padding="14">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Plano Básico" FontAttributes="Bold" />
+                    <Label Text="{Binding PlanUsage}" FontSize="12" TextColor="{StaticResource Muted}" />
+                </VerticalStackLayout>
+            </Border>
+
             <Grid IsVisible="{Binding IsNotEditing}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                 <Border BackgroundColor="{StaticResource BrandSoft}" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="12,18">
                     <VerticalStackLayout Spacing="4">

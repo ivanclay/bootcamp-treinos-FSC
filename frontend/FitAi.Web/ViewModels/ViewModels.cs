@@ -49,7 +49,7 @@ public sealed record HeatmapMonth(string Label, IReadOnlyList<IReadOnlyList<Heat
 /// <summary>State: "blank" (fora do mês), "none", "started" ou "done".</summary>
 public sealed record HeatmapCell(string Date, string State);
 
-public sealed record ProfileViewModel(CurrentUserResponse User, UserTrainDataResponse? TrainData, IReadOnlyList<PendingInviteResponse> PendingInvites);
+public sealed record ProfileViewModel(CurrentUserResponse User, UserTrainDataResponse? TrainData, IReadOnlyList<PendingInviteResponse> PendingInvites, MyPlanResponse Plan);
 
 public sealed class EditProfileViewModel
 {

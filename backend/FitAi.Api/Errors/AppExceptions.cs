@@ -44,3 +44,10 @@ public sealed class ExternalServiceException(string message)
 
 public sealed class AiNotConfiguredException(string message)
     : AppException(message, StatusCodes.Status503ServiceUnavailable, ErrorCodes.AiNotConfigured);
+
+/// <summary>Limite do plano gratuito atingido (a mensagem explica o limite e como liberar).</summary>
+public sealed class PlanLimitException(string message)
+    : AppException(message, StatusCodes.Status403Forbidden, ErrorCodes.PlanLimitReached);
+
+public sealed class PaymentProviderException(string message)
+    : AppException(message, StatusCodes.Status502BadGateway, ErrorCodes.PaymentProvider);
