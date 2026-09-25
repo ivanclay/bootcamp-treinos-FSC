@@ -34,14 +34,25 @@ model User {
 }
 
 model WorkoutPlan {
-  id          String       @id @default(uuid())
-  name        String
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workoutDays WorkoutDay[]
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now()) @db.Timestamptz()
-  updatedAt   DateTime     @updatedAt @db.Timestamptz()
+  id            String       @id @default(uuid())
+  name          String
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutDays   WorkoutDay[]
+  isActive      Boolean      @default(true)
+  goal          WorkoutGoal?
+  coverImageUrl String?
+  createdAt     DateTime     @default(now()) @db.Timestamptz()
+  updatedAt     DateTime     @updatedAt @db.Timestamptz()
+}
+
+enum WorkoutGoal {
+  HYPERTROPHY
+  STRENGTH
+  HYPERTROPHY_AND_STRENGTH
+  WEIGHT_LOSS
+  CONDITIONING
+  HEALTH
 }
 
 enum WeekDay {

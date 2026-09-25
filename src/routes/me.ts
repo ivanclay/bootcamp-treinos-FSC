@@ -83,6 +83,7 @@ export const meRoutes = async (app: FastifyInstance) => {
         const upsertUserTrainData = new UpsertUserTrainData();
         const result = await upsertUserTrainData.execute({
           userId: session.user.id,
+          name: request.body.name,
           weightInGrams: request.body.weightInGrams,
           heightInCentimeters: request.body.heightInCentimeters,
           age: request.body.age,

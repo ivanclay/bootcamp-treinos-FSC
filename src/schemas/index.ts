@@ -1,6 +1,6 @@
 import z from "zod";
 
-import { WeekDay } from "../generated/prisma/enums.js";
+import { WeekDay, WorkoutGoal } from "../generated/prisma/enums.js";
 
 export const ErrorSchema = z.object({
   error: z.string(),
@@ -95,6 +95,8 @@ export const GetWorkoutDaySchema = z.object({
 export const GetWorkoutPlanSchema = z.object({
   id: z.uuid(),
   name: z.string(),
+  goal: z.enum(WorkoutGoal).optional(),
+  coverImageUrl: z.url().optional(),
   workoutDays: z.array(
     z.object({
       id: z.uuid(),
@@ -119,6 +121,8 @@ export const ListWorkoutPlansSchema = z.array(
   z.object({
     id: z.uuid(),
     name: z.string(),
+    goal: z.enum(WorkoutGoal).optional(),
+    coverImageUrl: z.url().optional(),
     isActive: z.boolean(),
     workoutDays: z.array(
       z.object({
@@ -144,6 +148,7 @@ export const ListWorkoutPlansSchema = z.array(
 );
 
 export const UpsertUserTrainDataBodySchema = z.object({
+  name: z.string().trim().min(1).optional(),
   weightInGrams: z.number().min(0),
   heightInCentimeters: z.number().min(0),
   age: z.number().min(0),
@@ -161,6 +166,7 @@ export const UserTrainDataSchema = z.object({
 
 export const UpsertUserTrainDataSchema = z.object({
   userId: z.string(),
+  userName: z.string(),
   weightInGrams: z.number(),
   heightInCentimeters: z.number(),
   age: z.number(),
@@ -170,6 +176,8 @@ export const UpsertUserTrainDataSchema = z.object({
 export const WorkoutPlanSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(1),
+  goal: z.enum(WorkoutGoal).optional(),
+  coverImageUrl: z.url().optional(),
   workoutDays: z.array(
     z.object({
       name: z.string().trim().min(1),

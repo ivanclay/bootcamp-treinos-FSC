@@ -1,11 +1,13 @@
 import { NotFoundError } from "../errors/index.js";
-import { WeekDay } from "../generated/prisma/enums.js";
+import { WeekDay, WorkoutGoal } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 
 // Data Transfer Object
 interface InputDto {
   userId: string;
   name: string;
+  goal?: WorkoutGoal;
+  coverImageUrl?: string;
   workoutDays: Array<{
     name: string;
     weekDay: WeekDay;
@@ -25,6 +27,8 @@ interface InputDto {
 interface OutputDto {
   id: string;
   name: string;
+  goal?: WorkoutGoal;
+  coverImageUrl?: string;
   workoutDays: Array<{
     name: string;
     weekDay: WeekDay;
@@ -48,6 +52,10 @@ export class CreateWorkoutPlan {
         isActive: true,
       },
     });
+    const coverImageUrl =
+      dto.coverImageUrl ??
+      dto.workoutDays.find((day) => !day.isRest && day.coverImageUrl)
+        ?.coverImageUrl;
     // Transaction - Atomicidade
     return prisma.$transaction(async (tx) => {
       if (existingWorkoutPlan) {
@@ -61,6 +69,8 @@ export class CreateWorkoutPlan {
           id: crypto.randomUUID(),
           name: dto.name,
           userId: dto.userId,
+          goal: dto.goal,
+          coverImageUrl,
           isActive: true,
           workoutDays: {
             create: dto.workoutDays.map((workoutDay) => ({
@@ -98,6 +108,8 @@ export class CreateWorkoutPlan {
       return {
         id: result.id,
         name: result.name,
+        goal: result.goal ?? undefined,
+        coverImageUrl: result.coverImageUrl ?? undefined,
         workoutDays: result.workoutDays.map((day) => ({
           name: day.name,
           weekDay: day.weekDay,

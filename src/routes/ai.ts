@@ -11,7 +11,7 @@ import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import z from "zod";
 
-import { WeekDay } from "../generated/prisma/enums.js";
+import { WeekDay, WorkoutGoal } from "../generated/prisma/enums.js";
 import { auth } from "../lib/auth.js";
 import { CreateWorkoutPlan } from "../usecases/CreateWorkoutPlan.js";
 import { GetUserTrainData } from "../usecases/GetUserTrainData.js";
@@ -31,7 +31,7 @@ const SYSTEM_PROMPT = `Você é um personal trainer virtual especialista em mont
 2. Se o usuário **não tem dados cadastrados** (retornou null):
    - Pergunte nome, peso (kg), altura (cm), idade e % de gordura corporal (inteiro de 0 a 100, onde 100 = 100%).
    - Faça perguntas simples e diretas, tudo em uma única mensagem.
-   - Após receber os dados, salve com a tool \`updateUserTrainData\`. **IMPORTANTE**: converta o peso de kg para gramas (multiplique por 1000) antes de salvar.
+   - Após receber os dados, salve com a tool \`updateUserTrainData\`, enviando também o \`name\` informado. **IMPORTANTE**: converta o peso de kg para gramas (multiplique por 1000) antes de salvar.
 3. Se o usuário **já tem dados cadastrados**: cumprimente-o pelo nome de forma amigável.
 
 ## Criação de Plano de Treino
@@ -41,7 +41,24 @@ Quando o usuário quiser criar um plano de treino:
 - Poucas perguntas, simples e diretas.
 - O plano DEVE ter exatamente 7 dias (MONDAY a SUNDAY).
 - Dias sem treino devem ter: \`isRest: true\`, \`exercises: []\`, \`estimatedDurationInSeconds: 0\`.
-- Chame a tool \`createWorkoutPlan\` para salvar o plano.
+- Chame a tool \`createWorkoutPlan\` para salvar o plano, SEMPRE informando o \`goal\`.
+
+### Objetivo do Plano (goal)
+
+Converta o objetivo da pessoa em um destes valores:
+- \`HYPERTROPHY\`: ganhar massa muscular
+- \`STRENGTH\`: ficar mais forte
+- \`HYPERTROPHY_AND_STRENGTH\`: massa muscular e força
+- \`WEIGHT_LOSS\`: emagrecer / perder gordura
+- \`CONDITIONING\`: condicionamento / resistência
+- \`HEALTH\`: saúde e qualidade de vida
+
+## Mudar Objetivo ou Alterar Plano
+
+Quando o usuário pedir para mudar o objetivo ou alterar o plano de treino:
+1. Chame \`getWorkoutPlans\` para ver o plano ativo.
+2. Pergunte o novo objetivo (ou o que ele quer mudar) e confirme se os dias disponíveis e as restrições continuam os mesmos.
+3. Monte um novo plano seguindo as mesmas regras e salve com \`createWorkoutPlan\`. O plano anterior é desativado automaticamente.
 
 ### Divisões de Treino (Splits)
 
@@ -113,6 +130,12 @@ export const aiRoutes = async (app: FastifyInstance) => {
             description:
               "Atualiza os dados de treino do usuário autenticado. O peso deve ser em gramas (converter kg * 1000).",
             inputSchema: z.object({
+              name: z
+                .string()
+                .trim()
+                .min(1)
+                .optional()
+                .describe("Nome do usuário, se ele informou"),
               weightInGrams: z
                 .number()
                 .describe("Peso do usuário em gramas (ex: 70kg = 70000)"),
@@ -146,6 +169,15 @@ export const aiRoutes = async (app: FastifyInstance) => {
               "Cria um novo plano de treino completo para o usuário.",
             inputSchema: z.object({
               name: z.string().describe("Nome do plano de treino"),
+              goal: z
+                .enum(WorkoutGoal)
+                .describe("Objetivo principal do plano de treino"),
+              coverImageUrl: z
+                .url()
+                .optional()
+                .describe(
+                  "URL da imagem de capa do plano. Se omitida, usa a capa do primeiro dia de treino."
+                ),
               workoutDays: z
                 .array(
                   z.object({
@@ -199,6 +231,8 @@ export const aiRoutes = async (app: FastifyInstance) => {
               return createWorkoutPlan.execute({
                 userId,
                 name: input.name,
+                goal: input.goal,
+                coverImageUrl: input.coverImageUrl,
                 workoutDays: input.workoutDays,
               });
             },
