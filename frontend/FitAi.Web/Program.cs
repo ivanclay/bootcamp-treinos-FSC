@@ -48,6 +48,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 
 var app = builder.Build();
 
+FitAi.Web.ViewModels.Images.ApiPublicUrl =
+    builder.Configuration["Api:PublicUrl"] ?? builder.Configuration["Api:BaseUrl"] ?? "http://localhost:8080";
+
 app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
 {

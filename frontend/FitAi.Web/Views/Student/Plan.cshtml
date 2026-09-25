@@ -16,7 +16,7 @@
 }
 else
 {
-    <section class="hero" style="min-height:220px;background-image:url('@Images.Or(plan.CoverImageUrl)')">
+    <section class="hero" style="min-height:220px;background-image:url('@Images.Or(plan.CoverImageUrl, Images.Plan)')">
         <div class="logo">FIT.AI</div>
         <div class="stack" style="gap:8px">
             <div><span class="chip brand">@Icons.Get("target", 12) @Format.Goal(plan.Goal)</span></div>

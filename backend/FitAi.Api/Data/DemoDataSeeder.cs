@@ -16,10 +16,11 @@ public static class DemoDataSeeder
     public const string NewStudentEmail = "novo.aluno@fitai.local";
     public const string InviteCode = "FIT-DEMO26";
 
-    private const string Upper1 = "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO3y8pQ6GBg8iqe9pP2JrHjwd1nfKtVSQskI0v";
-    private const string Upper2 = "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOW3fJmqZe4yoUcwvRPQa8kmFprzNiC30hqftL";
-    private const string Lower1 = "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOgCHaUgNGronCvXmSzAMs1N3KgLdE5yHT6Ykj";
-    private const string Lower2 = "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO85RVu3morROwZk5NPhs1jzH7X8TyEvLUCGxY";
+    private const string Upper1 = "/covers/upper-1.jpg";
+    private const string Upper2 = "/covers/upper-3.jpg";
+    private const string Lower1 = "/covers/lower-1.jpg";
+    private const string Lower2 = "/covers/lower-4.jpg";
+    private const string PlanCover = "/covers/plan.jpg";
 
     public static async Task SeedAsync(AppDbContext db, TimeProvider timeProvider, CancellationToken ct = default)
     {
@@ -49,7 +50,7 @@ public static class DemoDataSeeder
             Name = "Hipertrofia — Upper/Lower",
             User = student,
             Goal = WorkoutGoal.HYPERTROPHY,
-            CoverImageUrl = Upper1,
+            CoverImageUrl = PlanCover,
             IsActive = true,
             Source = WorkoutPlanSource.TEACHER,
             CreatedBy = teacher,

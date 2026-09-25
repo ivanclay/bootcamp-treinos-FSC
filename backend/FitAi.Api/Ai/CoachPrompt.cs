@@ -2,17 +2,12 @@ namespace FitAi.Api.Ai;
 
 public static class CoachPrompt
 {
+    /// <summary>Fotos servidas pela própria API (wwwroot/covers). Caminhos relativos: os clientes resolvem a partir da URL da API.</summary>
     public static readonly IReadOnlyList<string> DefaultUpperBodyCoverImages =
-    [
-        "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO3y8pQ6GBg8iqe9pP2JrHjwd1nfKtVSQskI0v",
-        "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOW3fJmqZe4yoUcwvRPQa8kmFprzNiC30hqftL",
-    ];
+    ["/covers/upper-1.jpg", "/covers/upper-2.jpg", "/covers/upper-3.jpg", "/covers/upper-4.jpg"];
 
     public static readonly IReadOnlyList<string> DefaultLowerBodyCoverImages =
-    [
-        "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOgCHaUgNGronCvXmSzAMs1N3KgLdE5yHT6Ykj",
-        "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO85RVu3morROwZk5NPhs1jzH7X8TyEvLUCGxY",
-    ];
+    ["/covers/lower-1.jpg", "/covers/lower-2.jpg", "/covers/lower-3.jpg", "/covers/lower-4.jpg"];
 
     /// <summary>Prompt padrão. As seções de imagens de capa e de permissões são anexadas em <see cref="Build"/>.</summary>
     public const string Default = """

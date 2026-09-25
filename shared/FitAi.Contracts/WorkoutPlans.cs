@@ -79,7 +79,7 @@ public sealed class SaveWorkoutPlanRequest
 
     public WorkoutGoal? Goal { get; set; }
 
-    [Url]
+    [CoverImageUrl]
     public string? CoverImageUrl { get; set; }
 
     [Required, MinLength(1), MaxLength(7)]
@@ -98,7 +98,7 @@ public sealed class SaveWorkoutDayRequest
     [Range(0, 60 * 60 * 6)]
     public int EstimatedDurationInSeconds { get; set; }
 
-    [Url]
+    [CoverImageUrl]
     public string? CoverImageUrl { get; set; }
 
     public List<SaveWorkoutExerciseRequest> Exercises { get; set; } = [];

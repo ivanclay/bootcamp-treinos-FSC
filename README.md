@@ -219,7 +219,7 @@ Comandos úteis: `docker compose --profile full logs -f api` (logs), `docker com
 
 ## 🖼️ Telas
 
-Prints gerados com os dados de exemplo (as fotos de capa vêm de uma CDN externa e aparecem normalmente quando há internet).
+Prints gerados com os dados de exemplo. As fotos ficam no próprio projeto (`backend/FitAi.Api/wwwroot/covers`, servidas pela API em `/covers/...`) e vêm do [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), em domínio público — veja os [créditos](backend/FitAi.Api/wwwroot/covers/CREDITS.md). Para usar fotos próprias, substitua os arquivos mantendo os nomes.
 
 **Aluno (Web, layout mobile)**
 

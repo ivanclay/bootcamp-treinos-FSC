@@ -10,6 +10,8 @@ public partial class LoginViewModel(ApiClient api, AuthService auth) : BaseViewM
     [ObservableProperty]
     public partial bool DevLoginAvailable { get; set; }
 
+    public string HeroImage { get; } = Format.Cover("/covers/login.jpg");
+
     [ObservableProperty]
     public partial string DevEmail { get; set; } = "";
 

@@ -16,7 +16,7 @@ public partial class HomeViewModel(ApiClient api, AuthService auth) : BaseViewMo
 
     [ObservableProperty] public partial string Greeting { get; set; } = "Olá!";
     [ObservableProperty] public partial string Subtitle { get; set; } = "Bora treinar hoje?";
-    [ObservableProperty] public partial string HeroImage { get; set; } = Format.Cover(null);
+    public string HeroImage { get; } = Format.Cover("/covers/home.jpg");
     [ObservableProperty] public partial int Streak { get; set; }
     [ObservableProperty] public partial bool HasPlan { get; set; }
     [ObservableProperty] public partial bool HasTraining { get; set; }
@@ -44,7 +44,6 @@ public partial class HomeViewModel(ApiClient api, AuthService auth) : BaseViewMo
         HasTraining = _today is { IsRest: false };
         IsRestDay = _today is { IsRest: true };
         Subtitle = IsRestDay ? "Hoje é dia de descanso" : "Bora treinar hoje?";
-        HeroImage = Format.Cover(_today?.CoverImageUrl);
         TodayCover = Format.Cover(_today?.CoverImageUrl);
         TodayName = _today?.Name ?? "";
         TodayWeekDay = _today is null ? "" : Format.DayName(_today.WeekDay).ToUpperInvariant();

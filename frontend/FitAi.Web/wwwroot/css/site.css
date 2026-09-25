@@ -223,7 +223,8 @@ img { max-width: 100%; display: block; }
 
 /* ---------- Login ---------- */
 .login {
-  min-height: 100dvh; display: flex; flex-direction: column; background: #000 center top/cover no-repeat; color: #fff;
+  /* A foto ocupa só a parte de cima (o painel azul cobre o resto): altura fixa em vez de "cover" evita o zoom excessivo. */
+  min-height: 100dvh; display: flex; flex-direction: column; background: #000 45% top/auto 62% no-repeat; color: #fff;
 }
 .login .brand { text-align: center; padding-top: 48px; }
 .login .panel {

@@ -1,13 +1,6 @@
 @model PlanEditorViewModel
 @{
     ViewData["Title"] = Model.PlanId is null ? "Novo plano" : "Editar plano";
-    var covers = new[]
-    {
-        ("Superior 1", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO3y8pQ6GBg8iqe9pP2JrHjwd1nfKtVSQskI0v"),
-        ("Superior 2", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOW3fJmqZe4yoUcwvRPQa8kmFprzNiC30hqftL"),
-        ("Inferior 1", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCOgCHaUgNGronCvXmSzAMs1N3KgLdE5yHT6Ykj"),
-        ("Inferior 2", "https://gw8hy3fdcv.ufs.sh/f/ccoBDpLoAPCO85RVu3morROwZk5NPhs1jzH7X8TyEvLUCGxY"),
-    };
 }
 <div class="page-head">
     <div>
@@ -19,7 +12,7 @@
 @if (Model.Error is not null) { <div class="alert alert-danger">@Model.Error</div> }
 
 <datalist id="covers">
-    @foreach (var (label, url) in covers) { <option value="@url">@label</option> }
+    @foreach (var (label, path) in FitAi.Web.ViewModels.Images.Suggestions) { <option value="@path">@label</option> }
 </datalist>
 
 <form method="post" action="/admin/usuarios/@Model.UserId/planos/salvar" asp-antiforgery="true" id="plan-form">

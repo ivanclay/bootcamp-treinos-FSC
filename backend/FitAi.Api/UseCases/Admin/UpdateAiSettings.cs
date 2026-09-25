@@ -34,7 +34,7 @@ public sealed class UpdateAiSettings(AiSettingsStore store, IOptions<AiOptions> 
     private static List<string> CleanUrls(IEnumerable<string> urls)
     {
         var result = urls.Select(u => u.Trim()).Where(u => u.Length > 0).Distinct().ToList();
-        var invalid = result.FirstOrDefault(u => !Uri.TryCreate(u, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"));
+        var invalid = result.FirstOrDefault(u => !CoverImageUrlAttribute.IsValid(u));
         if (invalid is not null) throw new ValidationException($"URL de imagem inválida: {invalid}");
         return result;
     }
