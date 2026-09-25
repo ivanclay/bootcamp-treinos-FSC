@@ -6,6 +6,7 @@ using FitAi.Api.UseCases.WorkoutPlans;
 using FitAi.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FitAi.Api.Controllers;
 
@@ -43,8 +44,27 @@ public sealed class MeController(ICurrentUser currentUser) : ControllerBase
             request.Age,
             request.BodyFatPercentage), ct);
 
+    /// <summary>Convites de professor aguardando o aceite do aluno.</summary>
+    [HttpGet("invites")]
+    public Task<IReadOnlyList<PendingInviteResponse>> ListInvites([FromServices] ListPendingInvites listPendingInvites, CancellationToken ct) =>
+        listPendingInvites.ExecuteAsync(new ListPendingInvites.Input(currentUser.UserId), ct);
+
+    /// <summary>Aceita o convite: o professor passa a acompanhar o aluno (e ver seus dados e treinos).</summary>
+    [HttpPost("invites/{inviteId:guid}/accept")]
+    public async Task<TeacherLinkResponse> AcceptInvite(Guid inviteId, [FromServices] RespondToInvite respondToInvite, CancellationToken ct) =>
+        (await respondToInvite.ExecuteAsync(new RespondToInvite.Input(currentUser.UserId, inviteId, Accept: true), ct))!;
+
+    [HttpPost("invites/{inviteId:guid}/decline")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeclineInvite(Guid inviteId, [FromServices] RespondToInvite respondToInvite, CancellationToken ct)
+    {
+        await respondToInvite.ExecuteAsync(new RespondToInvite.Input(currentUser.UserId, inviteId, Accept: false), ct);
+        return NoContent();
+    }
+
     /// <summary>Vincula o aluno a um professor usando um código de convite.</summary>
     [HttpPost("teacher")]
+    [EnableRateLimiting(RateLimiting.InviteCode)]
     public Task<TeacherLinkResponse> RedeemInviteCode(
         RedeemInviteCodeRequest request, [FromServices] RedeemInviteCode redeemInviteCode, CancellationToken ct) =>
         redeemInviteCode.ExecuteAsync(new RedeemInviteCode.Input(currentUser.UserId, request.Code), ct);
@@ -129,6 +149,7 @@ public sealed class CoachController(ICurrentUser currentUser) : ControllerBase
     /// Envia a conversa ao Coach AI e devolve a resposta. O cliente guarda o histórico e o reenvia a cada mensagem.
     /// </summary>
     [HttpPost("chat")]
+    [EnableRateLimiting(RateLimiting.Coach)]
     public async Task<CoachChatResponse> Chat(
         CoachChatRequest request, [FromServices] SendCoachMessage sendCoachMessage, CancellationToken ct) =>
         await sendCoachMessage.ExecuteAsync(new SendCoachMessage.Input(await currentUser.GetAsync(ct), request.Messages), ct);

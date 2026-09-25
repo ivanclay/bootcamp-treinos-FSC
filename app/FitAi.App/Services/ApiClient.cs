@@ -28,10 +28,11 @@ public sealed class ApiClient
     /// <summary>Disparado quando a API responde 401 ou usuário bloqueado.</summary>
     public event EventHandler? SessionExpired;
 
-    public string GoogleLoginUrl => $"{AppConfig.ApiBaseUrl}/auth/google/login?redirectUri={Uri.EscapeDataString(AppConfig.CallbackUri)}";
+    public static string GoogleLoginUrl(string codeChallenge) =>
+        $"{AppConfig.ApiBaseUrl}/auth/google/login?redirectUri={Uri.EscapeDataString(AppConfig.CallbackUri)}&codeChallenge={codeChallenge}&codeChallengeMethod=S256";
 
     public Task<AuthProvidersResponse> GetAuthProvidersAsync() => Send<AuthProvidersResponse>(HttpMethod.Get, "auth/providers");
-    public Task<AuthTokenResponse> ExchangeCodeAsync(string code) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/token", new ExchangeAuthCodeRequest(code));
+    public Task<AuthTokenResponse> ExchangeCodeAsync(string code, string codeVerifier) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/token", new ExchangeAuthCodeRequest(code, codeVerifier));
     public Task<AuthTokenResponse> DevLoginAsync(string email) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/dev-login", new DevLoginRequest(email, null));
     public Task<CurrentUserResponse> GetCurrentUserAsync() => Send<CurrentUserResponse>(HttpMethod.Get, "auth/me");
 
@@ -39,6 +40,9 @@ public sealed class ApiClient
     public Task<UserTrainDataResponse?> GetTrainDataAsync() => Send<UserTrainDataResponse?>(HttpMethod.Get, "me");
     public Task<UserTrainDataResponse> UpsertTrainDataAsync(UpsertUserTrainDataRequest body) => Send<UserTrainDataResponse>(HttpMethod.Put, "me", body);
     public Task<TeacherLinkResponse> RedeemInviteCodeAsync(string code) => Send<TeacherLinkResponse>(HttpMethod.Post, "me/teacher", new RedeemInviteCodeRequest { Code = code });
+    public Task<IReadOnlyList<PendingInviteResponse>> ListPendingInvitesAsync() => Send<IReadOnlyList<PendingInviteResponse>>(HttpMethod.Get, "me/invites");
+    public Task<TeacherLinkResponse> AcceptInviteAsync(Guid id) => Send<TeacherLinkResponse>(HttpMethod.Post, $"me/invites/{id}/accept");
+    public Task<object?> DeclineInviteAsync(Guid id) => Send<object?>(HttpMethod.Post, $"me/invites/{id}/decline");
     public Task<StatsResponse> GetStatsAsync(DateOnly from, DateOnly to) => Send<StatsResponse>(HttpMethod.Get, $"stats?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
     public Task<IReadOnlyList<WorkoutPlanResponse>> ListActivePlansAsync() => Send<IReadOnlyList<WorkoutPlanResponse>>(HttpMethod.Get, "workout-plans?active=true");
     public Task<WorkoutDayResponse> GetWorkoutDayAsync(Guid planId, Guid dayId) => Send<WorkoutDayResponse>(HttpMethod.Get, $"workout-plans/{planId}/days/{dayId}");

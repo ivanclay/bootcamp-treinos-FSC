@@ -44,6 +44,18 @@
         <a class="btn outline block" href="/perfil/editar">@Icons.Get("edit", 16) Editar dados</a>
     }
 
+    @foreach (var invite in Model.PendingInvites)
+    {
+        <div class="card stack">
+            <strong>@invite.TeacherName quer ser seu professor</strong>
+            <span class="small muted">Ao aceitar, @invite.TeacherName poderá ver seus dados (peso, altura, idade, % de gordura), seus planos e seus treinos, e montar planos para você.</span>
+            <div class="row">
+                <form method="post" action="/perfil/convites/@invite.Id/aceitar" asp-antiforgery="true"><button class="btn sm" type="submit">Aceitar</button></form>
+                <form method="post" action="/perfil/convites/@invite.Id/recusar" asp-antiforgery="true"><button class="btn sm outline" type="submit">Recusar</button></form>
+            </div>
+        </div>
+    }
+
     @if (user.Role == UserRole.STUDENT && user.TeacherId is null)
     {
         <form class="card stack" method="post" asp-antiforgery="true" action="/perfil/codigo">

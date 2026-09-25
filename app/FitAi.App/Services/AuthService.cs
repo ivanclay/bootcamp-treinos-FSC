@@ -6,6 +6,7 @@ namespace FitAi.App.Services;
 /// <summary>
 /// Login com Google pelo navegador do sistema (WebAuthenticator): a API faz o OAuth e volta para
 /// fitai://auth?code=..., e o código é trocado por um JWT, guardado no SecureStorage.
+/// PKCE: o verifier nunca sai do app, então outro app que capture o deep link fitai:// não consegue usar o código.
 /// </summary>
 public sealed class AuthService(ApiClient api)
 {
@@ -40,9 +41,10 @@ public sealed class AuthService(ApiClient api)
 
     public async Task<CurrentUserResponse> LoginWithGoogleAsync()
     {
+        var verifier = Pkce.CreateVerifier();
         var result = await WebAuthenticator.Default.AuthenticateAsync(new WebAuthenticatorOptions
         {
-            Url = new Uri(api.GoogleLoginUrl),
+            Url = new Uri(ApiClient.GoogleLoginUrl(Pkce.CreateChallenge(verifier))),
             CallbackUrl = new Uri(AppConfig.CallbackUri),
             PrefersEphemeralWebBrowserSession = true,
         });
@@ -56,7 +58,7 @@ public sealed class AuthService(ApiClient api)
             throw new ApiException(System.Net.HttpStatusCode.Unauthorized, "Não foi possível entrar.", "login_failed");
         }
 
-        return await SaveAsync(await api.ExchangeCodeAsync(code));
+        return await SaveAsync(await api.ExchangeCodeAsync(code, verifier));
     }
 
     public async Task<CurrentUserResponse> DevLoginAsync(string email) => await SaveAsync(await api.DevLoginAsync(email));

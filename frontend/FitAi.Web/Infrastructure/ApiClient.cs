@@ -25,19 +25,23 @@ public sealed class ApiClient(HttpClient http, IConfiguration configuration)
 
     // ---------- Auth ----------
     public Task<AuthProvidersResponse> GetAuthProvidersAsync(CancellationToken ct) => Get<AuthProvidersResponse>("auth/providers", ct);
-    public Task<AuthTokenResponse> ExchangeCodeAsync(string code, CancellationToken ct) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/token", new ExchangeAuthCodeRequest(code), ct);
+    public Task<AuthTokenResponse> ExchangeCodeAsync(string code, string codeVerifier, CancellationToken ct) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/token", new ExchangeAuthCodeRequest(code, codeVerifier), ct);
     public Task<AuthTokenResponse> DevLoginAsync(string email, string? name, CancellationToken ct) => Send<AuthTokenResponse>(HttpMethod.Post, "auth/dev-login", new DevLoginRequest(email, name), ct);
     public Task<CurrentUserResponse> GetCurrentUserAsync(CancellationToken ct) => Get<CurrentUserResponse>("auth/me", ct);
     /// <summary>URL da API vista pelo navegador (Api:PublicUrl); difere de Api:BaseUrl quando a Web fala com a API por rede interna.</summary>
     public string PublicUrl => (configuration["Api:PublicUrl"] ?? BaseUrl).TrimEnd('/');
 
-    public string GoogleLoginUrl(string redirectUri) => $"{PublicUrl}/auth/google/login?redirectUri={Uri.EscapeDataString(redirectUri)}";
+    public string GoogleLoginUrl(string redirectUri, string codeChallenge) =>
+        $"{PublicUrl}/auth/google/login?redirectUri={Uri.EscapeDataString(redirectUri)}&codeChallenge={codeChallenge}&codeChallengeMethod=S256";
 
     // ---------- Aluno ----------
     public Task<HomeDataResponse> GetHomeAsync(DateOnly date, CancellationToken ct) => Get<HomeDataResponse>($"home/{date:yyyy-MM-dd}", ct);
     public Task<UserTrainDataResponse?> GetTrainDataAsync(CancellationToken ct) => Get<UserTrainDataResponse?>("me", ct);
     public Task<UserTrainDataResponse> UpsertTrainDataAsync(UpsertUserTrainDataRequest body, CancellationToken ct) => Send<UserTrainDataResponse>(HttpMethod.Put, "me", body, ct);
     public Task<TeacherLinkResponse> RedeemInviteCodeAsync(string code, CancellationToken ct) => Send<TeacherLinkResponse>(HttpMethod.Post, "me/teacher", new RedeemInviteCodeRequest { Code = code }, ct);
+    public Task<IReadOnlyList<PendingInviteResponse>> ListPendingInvitesAsync(CancellationToken ct) => Get<IReadOnlyList<PendingInviteResponse>>("me/invites", ct);
+    public Task<TeacherLinkResponse> AcceptInviteAsync(Guid id, CancellationToken ct) => Send<TeacherLinkResponse>(HttpMethod.Post, $"me/invites/{id}/accept", null, ct);
+    public Task DeclineInviteAsync(Guid id, CancellationToken ct) => Send<object?>(HttpMethod.Post, $"me/invites/{id}/decline", null, ct);
     public Task<StatsResponse> GetStatsAsync(DateOnly from, DateOnly to, CancellationToken ct) => Get<StatsResponse>($"stats?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}", ct);
     public Task<IReadOnlyList<WorkoutPlanResponse>> ListWorkoutPlansAsync(bool? active, CancellationToken ct) => Get<IReadOnlyList<WorkoutPlanResponse>>(active is null ? "workout-plans" : $"workout-plans?active={active.Value.ToString().ToLowerInvariant()}", ct);
     public Task<WorkoutPlanSummaryResponse> GetWorkoutPlanAsync(Guid id, CancellationToken ct) => Get<WorkoutPlanSummaryResponse>($"workout-plans/{id}", ct);

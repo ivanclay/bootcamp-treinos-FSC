@@ -14,8 +14,9 @@ public sealed class StudentController(ApiClient api, AppClock clock) : Controlle
     public async Task<IActionResult> Home(CancellationToken ct)
     {
         var home = await api.GetHomeAsync(clock.Today, ct);
+        var invites = await api.ListPendingInvitesAsync(ct);
         ViewData["Nav"] = "home";
-        return View(new HomeViewModel(home, User.FirstName(), clock.Today));
+        return View(new HomeViewModel(home, User.FirstName(), clock.Today, invites.Count));
     }
 
     [HttpGet("/plano")]

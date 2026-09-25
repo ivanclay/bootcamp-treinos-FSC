@@ -65,6 +65,7 @@ public static class ErrorMessages
         ErrorCodes.InvalidInviteCode => "Código de convite inválido ou expirado.",
         ErrorCodes.AiNotConfigured => "O Coach AI ainda não foi configurado. Avise o administrador.",
         ErrorCodes.ExternalService => "O serviço externo não respondeu. Tente de novo em instantes.",
+        ErrorCodes.RateLimited => "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.",
         ErrorCodes.Validation or ErrorCodes.Conflict => e.Message,
         _ => "Algo deu errado. Tente de novo em instantes.",
     };

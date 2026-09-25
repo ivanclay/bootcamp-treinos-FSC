@@ -4,6 +4,9 @@ public sealed class AuthOptions
 {
     public const string Section = "Auth";
 
+    /// <summary>Segredo de desenvolvimento versionado no appsettings.Development.json. Proibido fora de Development.</summary>
+    public const string DevelopmentJwtSecret = "dev-only-secret-change-me-in-production-0123456789";
+
     public string JwtSecret { get; set; } = "";
     public string JwtIssuer { get; set; } = "fitai-api";
     public string JwtAudience { get; set; } = "fitai-clients";
@@ -62,6 +65,29 @@ public sealed class AiProviderOptions
         !string.IsNullOrWhiteSpace(Model) &&
         (!RequiresApiKey || !string.IsNullOrWhiteSpace(ApiKey)) &&
         (Type.Equals("OpenAI", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(Endpoint));
+}
+
+public sealed class RateLimitOptions
+{
+    public const string Section = "RateLimit";
+
+    /// <summary>
+    /// Login, troca de código e dev-login: requisições por minuto por IP. Quando a Web troca o código,
+    /// o IP é o do servidor da Web (que tem seu próprio limite por cliente), por isso o valor é mais folgado.
+    /// </summary>
+    public int AuthPerMinute { get; set; } = 60;
+
+    /// <summary>Mensagens ao Coach AI por minuto por usuário (cada uma gera custo no provedor de IA).</summary>
+    public int CoachPerMinute { get; set; } = 10;
+
+    /// <summary>Mensagens ao Coach AI por dia por usuário.</summary>
+    public int CoachPerDay { get; set; } = 200;
+
+    /// <summary>Tentativas de código de convite a cada 10 minutos por usuário (evita força bruta).</summary>
+    public int InviteCodePer10Minutes { get; set; } = 5;
+
+    /// <summary>Teto geral por IP por minuto, para qualquer rota.</summary>
+    public int GlobalPerMinute { get; set; } = 300;
 }
 
 public sealed class YouTubeOptions

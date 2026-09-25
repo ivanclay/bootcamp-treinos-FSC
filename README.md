@@ -35,7 +35,7 @@ As telas do aluno são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoje
 | Web — aluno | Login, onboarding/chat, Home, Plano, Treino do dia (iniciar/concluir), Evolução, Perfil (dados e código de convite) | ✅ Entregue |
 | Web — `/admin` | Painel, alunos/professores, detalhe do aluno, editor de planos, convites e códigos, configurações do Coach AI | ✅ Entregue |
 | App MAUI (Android) | Login com Google, Home, Plano, Treino do dia, Coach AI, Evolução, Perfil | ✅ Código entregue — compilação validada no alvo `net10.0`; o APK precisa ser gerado com o Android SDK (Visual Studio/Rider) |
-| Testes | xUnit: sequência, validação de plano, códigos de convite, prompt do Coach | ✅ 19 testes |
+| Testes | xUnit: sequência, validação de plano, códigos de convite, prompt do Coach, PKCE, URLs de capa e sanitização do markdown do chat | ✅ 45 testes |
 
 **Ainda não feito:** resposta do Coach em streaming (hoje a resposta chega inteira), refresh token (o JWT dura 7 dias e depois pede login de novo), assinatura ("Plano Básico").
 
@@ -59,7 +59,7 @@ As telas do aluno são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoje
 
 O aluno se vincula a um professor de duas formas:
 
-1. **Convite por e-mail** — o professor cadastra o e-mail do aluno; no primeiro login com o Google usando esse e-mail, o aluno já entra vinculado.
+1. **Convite por e-mail** — o professor cadastra o e-mail do aluno. Quem ainda não tem conta já entra vinculado no primeiro login com esse e-mail; quem já tem conta recebe o convite no Perfil e precisa **aceitar** (o professor passa a ver os dados e treinos do aluno).
 2. **Código de convite** — o professor gera um código curto (ex.: `FIT-7K2Q`), com validade e limite de usos opcionais, que pode ser desativado a qualquer momento. O aluno digita o código no onboarding ou no Perfil.
 
 Quem entra sem convite vira aluno sem professor e pode informar um código depois. Os **planos de treino** podem ser montados pelo **professor** (no painel) ou pelo **Coach AI** (no chat); o professor vê e ajusta os planos gerados pela IA.
@@ -134,6 +134,7 @@ As chaves ficam só na configuração (User Secrets / variáveis de ambiente); n
 | `GET` | `/home/{date}` | Home |
 | `GET` · `PUT` | `/me` | Onboarding / Perfil |
 | `POST` | `/me/teacher` | Informar código de convite |
+| `GET` · `POST` | `/me/invites` · `/me/invites/{id}/accept` · `/me/invites/{id}/decline` | Convites de professor (aceitar/recusar) |
 | `GET` | `/stats?from=&to=` | Evolução |
 | `GET` · `POST` | `/workout-plans` | Plano de Treino |
 | `GET` | `/workout-plans/{planId}` | Plano de Treino |
@@ -213,7 +214,7 @@ YOUTUBE_API_KEY=...                     # vídeos no chat; sem ela o Coach indic
 
 Comandos úteis: `docker compose --profile full logs -f api` (logs), `docker compose --profile full down` (parar) e `docker compose --profile full down -v` (parar e **apagar o banco**, recriando os dados de exemplo na próxima subida). Se a porta 5432, 8080 ou 3000 já estiver em uso na sua máquina, pare o serviço que a ocupa ou ajuste o `ports` no `docker-compose.yml`.
 
-> Os usuários de exemplo e o login de desenvolvimento só existem com `ASPNETCORE_ENVIRONMENT=Development` (`Database:SeedDemoData` e `Auth:EnableDevLogin`). Em produção, desligue os dois e use o login com Google.
+> ⚠️ Este compose é para uso **local**: a API roda em Development (login só com e-mail, usuários de exemplo e segredo JWT de desenvolvimento) e as portas ficam presas em `127.0.0.1`. Fora de Development a API se recusa a subir com o segredo de desenvolvimento, e os usuários de exemplo, o login de desenvolvimento e o `/docs` ficam desligados. Antes de publicar, siga o [checklist de produção](SECURITY.md#checklist-de-produção).
 
 ---
 
@@ -296,6 +297,7 @@ Entre com os [usuários de exemplo](#-acesso-rápido-docker-desktop). Ou suba tu
 
 ```bash
 dotnet test tests/FitAi.Api.Tests
+dotnet test tests/FitAi.Web.Tests
 ```
 
 ---
@@ -308,7 +310,8 @@ FitAi.slnx
 ├── frontend/FitAi.Web/         # MVC + Razor (telas do aluno e área /admin)
 ├── app/FitAi.App/              # .NET MAUI (Android)
 ├── shared/FitAi.Contracts/     # DTOs de request/response e enums compartilhados
-├── tests/FitAi.Api.Tests/      # xUnit
+├── tests/FitAi.Api.Tests/      # xUnit (API)
+├── tests/FitAi.Web.Tests/      # xUnit (Web)
 ├── docker-compose.yml          # PostgreSQL 16
 ├── docs/                       # prints das telas e template de prompt para novas rotas
 └── tasks/                      # especificações originais das funcionalidades
@@ -317,6 +320,8 @@ FitAi.slnx
 ---
 
 ## 📚 Documentação
+
+- [`SECURITY.md`](SECURITY.md): revisão de segurança, correções, pendências e checklist de produção
 
 - [`CLAUDE.md`](CLAUDE.md) e [`.claude/rules/`](.claude/rules/): convenções do projeto
 - [`tasks/`](tasks/): especificação de cada funcionalidade (escritas na versão Node.js; as regras de negócio valem para a versão .NET)

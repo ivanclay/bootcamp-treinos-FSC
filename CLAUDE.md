@@ -15,6 +15,7 @@ FIT.AI em .NET 10: API REST (ASP.NET Core com controllers), front-end web (ASP.N
 | `app/FitAi.App` | .NET MAUI (Android) | App do aluno; consome a API via HTTP |
 | `shared/FitAi.Contracts` | Class library | DTOs de request/response e enums compartilhados |
 | `tests/FitAi.Api.Tests` | xUnit | Testes da API |
+| `tests/FitAi.Web.Tests` | xUnit | Testes da Web |
 
 ## Comandos
 
@@ -29,7 +30,7 @@ dotnet run --project backend/FitAi.Api
 dotnet run --project frontend/FitAi.Web
 
 # Testes
-dotnet test tests/FitAi.Api.Tests
+dotnet test tests/FitAi.Api.Tests && dotnet test tests/FitAi.Web.Tests
 
 # Nova migration (requer: dotnet tool install --global dotnet-ef)
 dotnet ef migrations add <Nome> --project backend/FitAi.Api -o Data/Migrations
@@ -64,3 +65,4 @@ Cookie de login guarda o JWT (claim `access_token`); `ApiClient` + `BearerTokenH
 - Datas em UTC na API (`DateTimeOffset`/`timestamptz`); a Web converte para `App:TimeZone`.
 - Mensagens de erro de validacao da API em portugues (sao exibidas nas telas).
 - Segredos (JWT, Google, chaves de IA, YouTube) em User Secrets ou variaveis de ambiente, nunca no `appsettings.json`.
+- Seguranca: ver `SECURITY.md`. Login exige PKCE; rotas sensiveis usam `[EnableRateLimiting]`; texto vindo da IA e sempre sanitizado antes de virar HTML.

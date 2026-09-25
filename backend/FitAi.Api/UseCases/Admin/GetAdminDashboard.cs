@@ -47,7 +47,7 @@ public sealed class GetAdminDashboard(AppDbContext db, TimeProvider timeProvider
             .Select(d => new DailyCountResponse(WorkoutStreak.ToKey(d), byDay.GetValueOrDefault(d)))
             .ToList();
 
-        var invites = db.EmailInvites.Where(i => i.AcceptedAt == null);
+        var invites = db.EmailInvites.Where(i => i.AcceptedAt == null && i.DeclinedAt == null);
         if (input.Actor.Role != UserRole.ADMIN) invites = invites.Where(i => i.TeacherId == input.Actor.Id);
         var pendingInvites = await invites.CountAsync(ct);
 

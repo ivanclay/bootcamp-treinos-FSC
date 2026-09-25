@@ -8,7 +8,7 @@ namespace FitAi.Api.UseCases.Admin;
 
 /// <summary>
 /// Convite por e-mail. Professor convida alunos para si; admin convida professores ou alunos para um professor.
-/// Se a pessoa já tem conta, o convite é aplicado na hora.
+/// Professor convidado que já tem conta é promovido na hora; aluno que já tem conta precisa aceitar o convite.
 /// </summary>
 public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider)
 {
@@ -34,7 +34,7 @@ public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider
         }
 
         var pendingDuplicate = await db.EmailInvites.AnyAsync(
-            i => i.Email == email && i.AcceptedAt == null && i.Role == role && i.TeacherId == teacherId, ct);
+            i => i.Email == email && i.AcceptedAt == null && i.DeclinedAt == null && i.Role == role && i.TeacherId == teacherId, ct);
         if (pendingDuplicate) throw new ConflictException("Já existe um convite pendente para este e-mail");
 
         var invite = new EmailInvite { Email = email, Role = role, TeacherId = teacherId, InvitedById = actor.Id };
@@ -49,14 +49,15 @@ public sealed class CreateEmailInvite(AppDbContext db, TimeProvider timeProvider
             else
             {
                 if (existingUser.Role != UserRole.STUDENT) throw new ConflictException("Este usuário não é aluno");
-                if (existingUser.TeacherId is not null && existingUser.TeacherId != teacherId)
-                {
-                    throw new ConflictException("Este aluno já está vinculado a outro professor");
-                }
-                existingUser.TeacherId = teacherId;
+                if (existingUser.TeacherId == teacherId) throw new ConflictException("Este aluno já está vinculado a este professor");
+                if (existingUser.TeacherId is not null) throw new ConflictException("Este aluno já está vinculado a outro professor");
+                // Aluno já cadastrado: o convite fica pendente até ele aceitar no Perfil (consentimento).
             }
-            invite.AcceptedAt = timeProvider.GetUtcNow();
-            invite.AcceptedByUserId = existingUser.Id;
+            if (role == UserRole.TEACHER)
+            {
+                invite.AcceptedAt = timeProvider.GetUtcNow();
+                invite.AcceptedByUserId = existingUser.Id;
+            }
         }
 
         db.EmailInvites.Add(invite);

@@ -14,7 +14,7 @@
     <div class="col-lg-6">
         <form class="panel h-100" method="post" action="/admin/convites" asp-antiforgery="true">
             <h2>@Icons.Get("mail", 16) Convite por e-mail</h2>
-            <p class="text-secondary small">Quando a pessoa entrar com o Google usando este e-mail, o vínculo é feito automaticamente. Se ela já tiver conta, é vinculada na hora.</p>
+            <p class="text-secondary small">Quem ainda não tem conta é vinculado ao entrar com o Google usando este e-mail. Aluno que já tem conta recebe o convite no Perfil e precisa aceitar.</p>
             <div class="mb-2">
                 <input class="form-control" type="email" name="email" required placeholder="aluno@gmail.com" />
             </div>
@@ -109,9 +109,9 @@
                     <td>@Format.Role(i.Role)</td>
                     <td>@(i.TeacherName ?? "—")</td>
                     <td>@Format.Date(i.CreatedAt, Clock.TimeZone)</td>
-                    <td>@(i.AcceptedAt is null ? Html.Raw("<span class=\"pill warn\">Pendente</span>") : Html.Raw("<span class=\"pill ok\">Aceito</span>"))</td>
+                    <td>@(i.AcceptedAt is not null ? Html.Raw("<span class=\"pill ok\">Aceito</span>") : i.DeclinedAt is not null ? Html.Raw("<span class=\"pill danger\">Recusado</span>") : Html.Raw("<span class=\"pill warn\">Pendente</span>"))</td>
                     <td class="text-end pe-3">
-                        @if (i.AcceptedAt is null)
+                        @if (i.AcceptedAt is null && i.DeclinedAt is null)
                         {
                             <form method="post" action="/admin/convites/@i.Id/cancelar" asp-antiforgery="true"><button class="btn btn-sm btn-outline-danger">Cancelar</button></form>
                         }

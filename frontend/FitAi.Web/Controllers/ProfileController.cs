@@ -14,8 +14,9 @@ public sealed class ProfileController(ApiClient api) : Controller
     {
         var me = await api.GetCurrentUserAsync(ct);
         var trainData = await api.GetTrainDataAsync(ct);
+        var invites = await api.ListPendingInvitesAsync(ct);
         ViewData["Nav"] = "profile";
-        return View(new ProfileViewModel(me, trainData));
+        return View(new ProfileViewModel(me, trainData, invites));
     }
 
     [HttpGet("/perfil/editar")]
@@ -55,6 +56,36 @@ public sealed class ProfileController(ApiClient api) : Controller
             ViewData["Nav"] = "profile";
             return View(model);
         }
+    }
+
+    [HttpPost("/perfil/convites/{id:guid}/aceitar")]
+    public async Task<IActionResult> AcceptInvite(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            var link = await api.AcceptInviteAsync(id, ct);
+            TempData["Flash"] = $"Pronto! Agora você é acompanhado por {link.TeacherName}.";
+        }
+        catch (ApiException e) when (e.Code is ErrorCodes.Conflict or ErrorCodes.NotFound)
+        {
+            TempData["FlashError"] = ErrorMessages.For(e);
+        }
+        return Redirect("/perfil");
+    }
+
+    [HttpPost("/perfil/convites/{id:guid}/recusar")]
+    public async Task<IActionResult> DeclineInvite(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            await api.DeclineInviteAsync(id, ct);
+            TempData["Flash"] = "Convite recusado.";
+        }
+        catch (ApiException e) when (e.Code == ErrorCodes.NotFound)
+        {
+            TempData["FlashError"] = ErrorMessages.For(e);
+        }
+        return Redirect("/perfil");
     }
 
     [HttpPost("/perfil/codigo")]

@@ -13,5 +13,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/FitAi.Api.Tests/FitAi.Api.Tests.csproj" />
+    <Project Path="tests/FitAi.Web.Tests/FitAi.Web.Tests.csproj" />
   </Folder>
 </Solution>

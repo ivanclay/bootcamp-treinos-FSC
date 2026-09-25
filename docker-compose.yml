@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: fitai
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,6 +17,8 @@ services:
       retries: 10
 
   # API e Web em containers (opcional): docker compose --profile full up -d --build
+  # ATENÇÃO: este compose é para uso LOCAL. A API roda em Development (login só com e-mail e usuários de exemplo
+  # ligados) e as portas ficam presas em 127.0.0.1 de propósito. Não publique assim — veja "Produção" no README.
   api:
     profiles: ["full"]
     build:
@@ -27,7 +29,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${FITAI_ENVIRONMENT:-Development}
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=fitai;Username=postgres;Password=password
       Auth__JwtSecret: ${FITAI_JWT_SECRET:-dev-only-secret-change-me-in-production-0123456789}
       Ai__Providers__OpenAI__ApiKey: ${OPENAI_API_KEY:-}
@@ -36,7 +38,7 @@ services:
       Auth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
       YouTube__ApiKey: ${YOUTUBE_API_KEY:-}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
   web:
     profiles: ["full"]
@@ -49,7 +51,7 @@ services:
       Api__BaseUrl: http://api:8080
       Api__PublicUrl: http://localhost:8080
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
 volumes:
   postgres_data:

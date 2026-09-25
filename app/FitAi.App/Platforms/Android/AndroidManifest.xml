@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<!-- usesCleartextTraffic: permite a API local em http://10.0.2.2:8080 durante o desenvolvimento. Remova em produção (use HTTPS). -->
-	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:label="FIT.AI" android:usesCleartextTraffic="true"></application>
+	<!-- HTTP sem TLS (usesCleartextTraffic) só é liberado em Debug, via [Application] em MainApplication.cs. -->
+	<!-- allowBackup=false: o token de login não vai para backups do Android. -->
+	<application android:allowBackup="false" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:label="FIT.AI"></application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<!-- Necessário no Android 11+ para o WebAuthenticator abrir o navegador (Custom Tabs). -->

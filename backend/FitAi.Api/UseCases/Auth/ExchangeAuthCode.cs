@@ -9,7 +9,7 @@ namespace FitAi.Api.UseCases.Auth;
 
 public sealed class ExchangeAuthCode(AppDbContext db, JwtTokenService tokens, TimeProvider timeProvider)
 {
-    public sealed record Input(string Code);
+    public sealed record Input(string Code, string CodeVerifier);
 
     public async Task<AuthTokenResponse> ExecuteAsync(Input input, CancellationToken ct = default)
     {
@@ -21,8 +21,17 @@ public sealed class ExchangeAuthCode(AppDbContext db, JwtTokenService tokens, Ti
             throw new UnauthorizedException("Invalid or expired code");
         }
 
-        authCode.UsedAt = now;
-        await db.SaveChangesAsync(ct);
+        // Uso único garantido no banco: só uma requisição consegue marcar o código como usado.
+        var claimed = await db.AuthCodes
+            .Where(c => c.Id == authCode.Id && c.UsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now), ct);
+        if (claimed == 0) throw new UnauthorizedException("Invalid or expired code");
+
+        // PKCE: só quem iniciou o login (tem o verifier) pode usar o código. Código queimado mesmo se falhar.
+        if (!Pkce.Verify(input.CodeVerifier, authCode.CodeChallenge))
+        {
+            throw new UnauthorizedException("Invalid or expired code");
+        }
 
         // Limpeza oportunista de códigos vencidos.
         await db.AuthCodes.Where(c => c.ExpiresAt < now.AddDays(-1)).ExecuteDeleteAsync(ct);

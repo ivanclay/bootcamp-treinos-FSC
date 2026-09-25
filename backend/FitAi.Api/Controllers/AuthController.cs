@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 
 namespace FitAi.Api.Controllers;
@@ -25,28 +26,39 @@ public sealed class AuthController(IOptions<AuthOptions> authOptions, IWebHostEn
     [HttpGet("providers")]
     public AuthProvidersResponse GetProviders() => new(authOptions.Value.Google.IsConfigured, DevLoginEnabled);
 
-    /// <summary>Inicia o login com o Google. Ao final, redireciona para <c>redirectUri?code=...</c>.</summary>
+    /// <summary>
+    /// Inicia o login com o Google. Ao final, redireciona para <c>redirectUri?code=...</c>.
+    /// <c>codeChallenge</c> é obrigatório (PKCE S256): o código só é trocado por token com o verifier correspondente.
+    /// </summary>
     [HttpGet("google/login")]
+    [EnableRateLimiting(RateLimiting.Auth)]
     [ProducesResponseType(StatusCodes.Status302Found)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status400BadRequest)]
-    public IActionResult GoogleLogin([FromQuery] string redirectUri)
+    public IActionResult GoogleLogin([FromQuery] string redirectUri, [FromQuery] string? codeChallenge, [FromQuery] string? codeChallengeMethod = "S256")
     {
         EnsureAllowedRedirect(redirectUri);
+        if (codeChallengeMethod != "S256" || !Pkce.IsValidChallenge(codeChallenge))
+        {
+            throw new ValidationException("codeChallenge (PKCE S256) é obrigatório");
+        }
         if (!authOptions.Value.Google.IsConfigured) throw new ValidationException("O login com Google não está configurado");
 
-        var callback = Url.Action(nameof(GoogleCallback), new { redirectUri })!;
+        var callback = Url.Action(nameof(GoogleCallback), new { redirectUri, codeChallenge })!;
         return Challenge(new AuthenticationProperties { RedirectUri = callback }, GoogleDefaults.AuthenticationScheme);
     }
 
     [HttpGet("google/callback")]
+    [EnableRateLimiting(RateLimiting.Auth)]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> GoogleCallback(
         [FromQuery] string redirectUri,
+        [FromQuery] string codeChallenge,
         [FromServices] SignInWithExternalLogin signIn,
         [FromServices] CreateAuthCode createAuthCode,
         CancellationToken ct)
     {
         EnsureAllowedRedirect(redirectUri);
+        if (!Pkce.IsValidChallenge(codeChallenge)) return Redirect(AppendQuery(redirectUri, "error", "login_failed"));
         var result = await HttpContext.AuthenticateAsync(ExternalScheme);
         await HttpContext.SignOutAsync(ExternalScheme);
         if (!result.Succeeded) return Redirect(AppendQuery(redirectUri, "error", "login_failed"));
@@ -65,7 +77,7 @@ public sealed class AuthController(IOptions<AuthOptions> authOptions, IWebHostEn
                 principal.FindFirstValue(ClaimTypes.Name),
                 principal.FindFirstValue("picture"),
                 EmailVerified: true), ct);
-            var code = await createAuthCode.ExecuteAsync(new CreateAuthCode.Input(user.UserId), ct);
+            var code = await createAuthCode.ExecuteAsync(new CreateAuthCode.Input(user.UserId, codeChallenge), ct);
             return Redirect(AppendQuery(redirectUri, "code", code.Code));
         }
         catch (UserBlockedException)
@@ -76,14 +88,16 @@ public sealed class AuthController(IOptions<AuthOptions> authOptions, IWebHostEn
 
     /// <summary>Troca o código de uso único recebido no redirect por um JWT.</summary>
     [HttpPost("token")]
+    [EnableRateLimiting(RateLimiting.Auth)]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status401Unauthorized)]
     public Task<AuthTokenResponse> ExchangeCode(
         ExchangeAuthCodeRequest request, [FromServices] ExchangeAuthCode exchangeAuthCode, CancellationToken ct) =>
-        exchangeAuthCode.ExecuteAsync(new ExchangeAuthCode.Input(request.Code), ct);
+        exchangeAuthCode.ExecuteAsync(new ExchangeAuthCode.Input(request.Code, request.CodeVerifier), ct);
 
     /// <summary>Login sem Google, só em desenvolvimento (<c>Auth:EnableDevLogin</c>).</summary>
     [HttpPost("dev-login")]
+    [EnableRateLimiting(RateLimiting.Auth)]
     [ProducesResponseType<AuthTokenResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AuthTokenResponse>> DevLogin(
@@ -92,7 +106,7 @@ public sealed class AuthController(IOptions<AuthOptions> authOptions, IWebHostEn
         [FromServices] IssueAuthToken issueAuthToken,
         CancellationToken ct)
     {
-        if (!DevLoginEnabled) return NotFound();
+        if (!DevLoginEnabled) throw new NotFoundException("Not found");
         var user = await signIn.ExecuteAsync(new SignInWithExternalLogin.Input(
             "dev", request.Email.Trim().ToLowerInvariant(), request.Email, request.Name, null, EmailVerified: false), ct);
         return await issueAuthToken.ExecuteAsync(new IssueAuthToken.Input(user.UserId), ct);

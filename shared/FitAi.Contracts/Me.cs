@@ -35,3 +35,6 @@ public sealed class RedeemInviteCodeRequest
 }
 
 public sealed record TeacherLinkResponse(string TeacherId, string TeacherName);
+
+/// <summary>Convite de professor aguardando o aceite do aluno.</summary>
+public sealed record PendingInviteResponse(Guid Id, string TeacherId, string TeacherName, DateTimeOffset CreatedAt);

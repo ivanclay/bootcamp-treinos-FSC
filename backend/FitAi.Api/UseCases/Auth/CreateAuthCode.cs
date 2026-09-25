@@ -10,7 +10,7 @@ public sealed class CreateAuthCode(AppDbContext db, TimeProvider timeProvider)
 {
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(2);
 
-    public sealed record Input(string UserId);
+    public sealed record Input(string UserId, string CodeChallenge);
 
     public sealed record Output(string Code);
 
@@ -21,6 +21,7 @@ public sealed class CreateAuthCode(AppDbContext db, TimeProvider timeProvider)
         {
             CodeHash = Hash(code),
             UserId = input.UserId,
+            CodeChallenge = input.CodeChallenge,
             ExpiresAt = timeProvider.GetUtcNow().Add(Lifetime),
         });
         await db.SaveChangesAsync(ct);

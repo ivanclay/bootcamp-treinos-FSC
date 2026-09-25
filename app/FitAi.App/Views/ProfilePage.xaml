@@ -66,6 +66,25 @@
             <Button Text="{Binding EditButtonText}" Command="{Binding ToggleEditCommand}"
                     BackgroundColor="White" TextColor="{StaticResource Ink}" BorderColor="{StaticResource Line}" BorderWidth="1" CornerRadius="24" HeightRequest="48" />
 
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Invites}" Spacing="10">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:InviteItem">
+                        <Border Stroke="{StaticResource Line}" StrokeShape="RoundRectangle 20" Padding="16">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                <Label Text="{Binding Description}" FontSize="12" TextColor="{StaticResource Muted}" />
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button Text="Aceitar" BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="18" HeightRequest="36"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=AcceptInviteCommand, x:DataType=vm:ProfileViewModel}" CommandParameter="{Binding .}" />
+                                    <Button Text="Recusar" BackgroundColor="White" TextColor="{StaticResource Ink}" BorderColor="{StaticResource Line}" BorderWidth="1" CornerRadius="18" HeightRequest="36"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=DeclineInviteCommand, x:DataType=vm:ProfileViewModel}" CommandParameter="{Binding .}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
             <Border IsVisible="{Binding ShowInvite}" Stroke="{StaticResource Line}" StrokeShape="RoundRectangle 20" Padding="16">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="Tem um código do seu professor?" FontAttributes="Bold" />
