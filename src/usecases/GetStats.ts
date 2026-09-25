@@ -3,18 +3,12 @@ import utc from "dayjs/plugin/utc.js";
 
 import { NotFoundError } from "../errors/index.js";
 import { prisma } from "../lib/db.js";
+import {
+  calculateWorkoutStreak,
+  getCompletedSessionDates,
+} from "../lib/workout-streak.js";
 
 dayjs.extend(utc);
-
-const WEEKDAY_MAP: Record<number, string> = {
-  0: "SUNDAY",
-  1: "MONDAY",
-  2: "TUESDAY",
-  3: "WEDNESDAY",
-  4: "THURSDAY",
-  5: "FRIDAY",
-  6: "SATURDAY",
-};
 
 interface InputDto {
   userId: string;
@@ -99,11 +93,13 @@ export class GetStats {
       return total + end.diff(start, "second");
     }, 0);
 
-    const workoutStreak = await this.calculateStreak(
-      workoutPlan.id,
-      workoutPlan.workoutDays,
-      toDate
-    );
+    const now = dayjs.utc();
+    const workoutStreak = calculateWorkoutStreak({
+      workoutDays: workoutPlan.workoutDays,
+      completedDates: getCompletedSessionDates(workoutPlan.workoutDays),
+      referenceDate: toDate.isAfter(now) ? now : toDate,
+      planCreatedAt: workoutPlan.createdAt,
+    });
 
     return {
       workoutStreak,
@@ -112,59 +108,5 @@ export class GetStats {
       conclusionRate,
       totalTimeInSeconds,
     };
-  }
-
-  private async calculateStreak(
-    workoutPlanId: string,
-    workoutDays: Array<{
-      weekDay: string;
-      isRest: boolean;
-    }>,
-    currentDate: dayjs.Dayjs
-  ): Promise<number> {
-    const planWeekDays = new Set(workoutDays.map((d) => d.weekDay));
-    const restWeekDays = new Set(
-      workoutDays.filter((d) => d.isRest).map((d) => d.weekDay)
-    );
-
-    const allSessions = await prisma.workoutSession.findMany({
-      where: {
-        workoutDay: { workoutPlanId },
-        completedAt: { not: null },
-      },
-      select: { startedAt: true },
-    });
-
-    const completedDates = new Set(
-      allSessions.map((s) => dayjs.utc(s.startedAt).format("YYYY-MM-DD"))
-    );
-
-    let streak = 0;
-    let day = currentDate;
-
-    for (let i = 0; i < 365; i++) {
-      const weekDay = WEEKDAY_MAP[day.day()];
-
-      if (!planWeekDays.has(weekDay)) {
-        day = day.subtract(1, "day");
-        continue;
-      }
-
-      if (restWeekDays.has(weekDay)) {
-        day = day.subtract(1, "day");
-        continue;
-      }
-
-      const dateKey = day.format("YYYY-MM-DD");
-      if (completedDates.has(dateKey)) {
-        streak++;
-        day = day.subtract(1, "day");
-        continue;
-      }
-
-      break;
-    }
-
-    return streak;
   }
 }
