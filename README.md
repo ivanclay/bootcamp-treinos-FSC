@@ -1,148 +1,167 @@
-# FIT.AI — API de Treinos
+# FIT.AI — Plataforma de Treinos (.NET 10)
 
-![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?style=for-the-badge&logo=nodedotjs)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript)
-![Fastify 5](https://img.shields.io/badge/Fastify-5-000000?style=for-the-badge&logo=fastify)
-![Prisma 7](https://img.shields.io/badge/Prisma-7-2D3748?style=for-the-badge&logo=prisma)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet)
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-API%20%2B%20MVC-512BD4?style=for-the-badge&logo=dotnet)
+![.NET MAUI](https://img.shields.io/badge/.NET%20MAUI-Android-3DDC84?style=for-the-badge&logo=android)
+![EF Core](https://img.shields.io/badge/EF%20Core-10-512BD4?style=for-the-badge)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql)
-![Zod 4](https://img.shields.io/badge/Zod-4-3E67B1?style=for-the-badge&logo=zod)
-![Better-Auth](https://img.shields.io/badge/Auth-Better--Auth-black?style=for-the-badge)
-![Vercel AI SDK 6](https://img.shields.io/badge/AI%20SDK-6-000000?style=for-the-badge&logo=vercel)
+![Microsoft.Extensions.AI](https://img.shields.io/badge/AI-Microsoft.Extensions.AI-000000?style=for-the-badge)
 
-> **FIT.AI** é o nome que a pessoa lê — telas, logo, Figma. **`bootcamp-treinos-api`** é o nome do projeto: pacote, container do banco e título do OpenAPI.
+> **FIT.AI** é o nome que a pessoa lê — telas, logo, Figma. A solution se chama **`FitAi`**.
 >
-> Este repositório é **só o back-end**. As telas ficam no front-end (`WEB_APP_BASE_URL`, por padrão `http://localhost:3000`).
+> 🚧 **Em construção.** Esta branch reescreve em .NET 10 o antigo back-end Node.js (Fastify + Prisma + Better-Auth). Veja o [estado atual](#estado-atual).
 
 ## 📋 Introdução
 
-Entre com o Google e converse com o **Coach AI**: ele pergunta **peso**, **altura**, **idade** e **% de gordura**, depois o **objetivo**, os **dias disponíveis** e as **restrições**, e monta um **plano de treino de 7 dias** com o **objetivo** marcado — com divisão (split), exercícios, séries, repetições, descanso e imagem de capa. No dia a dia, a pessoa **inicia** e **conclui** o treino do dia, e a API calcula a **sequência** (🔥), a **consistência** por dia, os **treinos feitos**, a **taxa de conclusão** e o **tempo total**.
+Entre com o Google e converse com o **Coach AI**: ele pergunta **peso**, **altura**, **idade** e **% de gordura**, depois o **objetivo**, os **dias disponíveis** e as **restrições**, e monta um **plano de treino de 7 dias** — com divisão (split), exercícios, séries, repetições, descanso e imagem de capa. No dia a dia, o aluno **inicia** e **conclui** o treino do dia e acompanha a **sequência** (🔥), a **consistência**, os **treinos feitos**, a **taxa de conclusão** e o **tempo total**.
 
-As telas atendidas são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoje, Plano de Treino, Dia do Plano, Evolução e Perfil.**
+Além do aluno, a plataforma tem **professores** e **administradores**: o professor acompanha os alunos dele e monta ou ajusta os planos de treino pela **área administrativa** (`/admin`).
 
-**Objetivo:** entregar ao front-end, por rotas REST tipadas, tudo o que as telas do FIT.AI precisam — com regra de negócio só nos use cases e validação só nas rotas.
+A solution tem três aplicações:
 
-> ⚠️ **Toda rota de dados é protegida.** A sessão vem do Better-Auth (`auth.api.getSession`) e toda consulta é filtrada pelo `userId` da sessão: a pessoa só vê e altera os próprios planos, dias e sessões. O Coach AI usa as mesmas regras — as tools recebem o `userId` por closure, nunca do modelo.
+| Aplicação | Projeto | Para quem |
+| --- | --- | --- |
+| **Backend** — API REST com controllers | `backend/FitAi.Api` | Consumida pela Web e pelo App |
+| **Frontend** — ASP.NET Core MVC com Razor Views | `frontend/FitAi.Web` | Aluno (telas do Figma) e professor/admin (`/admin`) |
+| **App** — .NET MAUI | `app/FitAi.App` | Aluno, no Android |
+
+As telas do aluno são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoje, Plano de Treino, Dia do Plano, Evolução e Perfil.**
 
 ### Estado atual
 
-O projeto foi construído em aulas (`aula-00`, `aula-01`, `aula-03`), cada uma em uma branch. Todas foram unidas na **`main`** (histórico linear, sem conflitos) e apagadas depois. As tarefas que deram origem às rotas estão em [`tasks/`](tasks/) (01 a 11, todas implementadas).
+| Etapa | Entrega | Estado |
+| --- | --- | --- |
+| Scaffold | Solution `FitAi.slnx`, projetos criados, código Node.js removido | ✅ Entregue |
+| Contracts | DTOs compartilhados em `shared/FitAi.Contracts` | ✅ Entregue |
+| API | Entidades, EF Core + migrations, autenticação, papéis, convites, use cases, controllers, Coach AI | 🚧 Em andamento |
+| Web | Telas do aluno + área `/admin` | ⏳ Pendente |
+| App | MAUI Android | ⏳ Pendente |
+| Testes | xUnit (sequência, use cases) | ⏳ Pendente |
 
-| Fase        | Entrega                                                                                                                                                      | Estado   |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| **aula-00** | Fundação: Fastify + Zod, Prisma + PostgreSQL, Better-Auth, plano de treino, sessões (iniciar/concluir), Home, Plano, Dia, Stats, `/me`, rotas da IA          | Entregue |
-| **aula-01** | Login com Google (sempre pede a conta), `todayWorkoutDay` opcional na Home, modelo OpenAI no chat                                                            | Entregue |
-| **aula-03** | Variáveis de ambiente validadas com Zod, Dockerfile, pino-pretty, migrations do Prisma, cookies entre subdomínios em produção                                | Entregue |
-| **task 09** | Objetivo (`goal`) e capa (`coverImageUrl`) do plano; "Mudar objetivo" no chat; nome salvo no onboarding                                                      | Entregue |
-| **task 10** | Correções: criar plano não desativa mais o plano de outra pessoa; sequência não zera enquanto o treino de hoje não é concluído; `OPENAI_API_KEY` obrigatória | Entregue |
-| **task 11** | Vídeo do exercício no chat (YouTube Data API, com link de busca como alternativa)                                                                            | Entregue |
-| **Depois**  | Assinatura ("Plano Básico")                                                                                                                                  | Pendente |
+---
 
-**Todas as telas do Figma têm rota.** O que ainda fica no front: reordenar a semana (a API vai de domingo a sábado; o Figma, de segunda a domingo), formatar peso, taxa e tempo, e o texto "Plano Básico".
+## 👥 Papéis e convites
+
+| Papel | Como obtém | O que faz |
+| --- | --- | --- |
+| **Admin** | E-mail listado em `Auth:AdminEmails` no `appsettings` (aplicado a cada login) | Tudo: cadastra professores, vê todos os alunos e métricas, configura o Coach AI |
+| **Professor** | Convidado por um admin (por e-mail) ou promovido no painel | Vê **só os alunos dele**, monta/edita planos, gera códigos de convite, liga/desliga a criação de planos pela IA por aluno |
+| **Aluno** | Padrão ao entrar com o Google | Usa a Web e o App: Coach AI, treinos, evolução, perfil |
+
+O aluno se vincula a um professor de duas formas:
+
+1. **Convite por e-mail** — o professor cadastra o e-mail do aluno; no primeiro login com o Google usando esse e-mail, o aluno já entra vinculado.
+2. **Código de convite** — o professor gera um código curto (ex.: `FIT-7K2Q`), com validade e limite de usos opcionais, que pode ser desativado a qualquer momento. O aluno digita o código no onboarding ou no Perfil.
+
+Quem entra sem convite vira aluno sem professor e pode informar um código depois. Os **planos de treino** podem ser montados pelo **professor** (no painel) ou pelo **Coach AI** (no chat); o professor vê e ajusta os planos gerados pela IA.
 
 ---
 
 ## 🏗️ Arquitetura do Sistema
 
-Camadas em uma direção só: **Rotas → Use Cases → Prisma**. A rota valida (Zod) e autentica (Better-Auth), instancia um use case e traduz erros em status HTTP. O use case concentra a regra de negócio, fala direto com o Prisma e devolve um `OutputDto` — nunca o model do banco.
-
 ```mermaid
 graph TD
-    subgraph "Cliente"
-        Web["Front-end FIT.AI<br/>(WEB_APP_BASE_URL)"]
+    subgraph "Clientes"
+        Web["FitAi.Web<br/>(MVC + Razor,<br/>aluno e /admin)"]
+        App["FitAi.App<br/>(MAUI Android)"]
     end
 
-    subgraph "API (Fastify 5)"
-        Rotas["src/routes<br/>(Zod, sessão,<br/>status HTTP)"]
-        Auth["src/lib/auth.ts<br/>(Better-Auth,<br/>/api/auth/*)"]
-        IA["src/routes/ai.ts<br/>(Coach AI, tools)"]
-        UseCases["src/usecases<br/>(regras de negócio,<br/>InputDto → OutputDto)"]
-        Prisma["src/lib/db.ts<br/>(Prisma + pg adapter)"]
+    subgraph "FitAi.Api (ASP.NET Core)"
+        Controllers["Controllers<br/>(validação, auth,<br/>status HTTP)"]
+        Auth["Auth<br/>(Google OAuth → código<br/>de uso único → JWT)"]
+        Coach["Coach AI<br/>(IChatClient + tools)"]
+        UseCases["UseCases<br/>(regras de negócio)"]
+        Db["AppDbContext<br/>(EF Core + Npgsql)"]
     end
 
     Banco[("PostgreSQL 16")]
-    Google["🌐 Google<br/>(OAuth)"]
-    OpenAI["🌐 OpenAI<br/>(gpt-4o-mini)"]
+    Google["🌐 Google OAuth"]
+    IA["🌐 Provedor de IA<br/>(OpenAI por padrão)"]
+    YouTube["🌐 YouTube Data API"]
 
-    Web -->|"cookie de sessão"| Rotas
-    Web -->|"login / logout"| Auth
-    Web -->|"POST /ai (stream)"| IA
-    Rotas --> Auth
-    Rotas --> UseCases
-    IA --> UseCases
-    IA --> OpenAI
+    Web -->|"Bearer JWT"| Controllers
+    App -->|"Bearer JWT"| Controllers
+    Web -->|"login"| Auth
+    App -->|"login (WebAuthenticator)"| Auth
+    Controllers --> UseCases
+    Coach --> UseCases
+    Controllers --> Coach
     Auth --> Google
-    Auth --> Prisma
-    UseCases --> Prisma
-    Prisma --> Banco
+    Coach --> IA
+    UseCases --> YouTube
+    UseCases --> Db
+    Db --> Banco
 ```
 
----
+Camadas em uma direção só: **Controllers → Use Cases → EF Core**. O controller valida a entrada e a autenticação, chama um use case e devolve o status HTTP. O use case concentra a regra de negócio, fala direto com o `AppDbContext` e devolve DTOs de `FitAi.Contracts` — nunca a entidade do banco. Erros de negócio são exceções customizadas, traduzidas em `{ error, code }` com o status HTTP correspondente.
 
-## 🚀 Camadas do Projeto
+### Autenticação
 
-**Rotas** (`src/routes/`)
-: Handlers Fastify com `fastify-type-provider-zod`. Cada rota declara `tags`, `summary`, `params`/`querystring`/`body` e as respostas (incluindo `ErrorSchema`). Busca a sessão, chama **um** use case e trata os erros dele. Nenhuma regra de negócio.
+1. O cliente (Web ou App) abre `GET /auth/google/login?redirectUri=...` na API.
+2. A API faz o login com o Google e redireciona para `redirectUri?code=...` com um **código de uso único** (curta duração). Só são aceitos os `redirectUri` listados em `Auth:AllowedRedirectUris` (ex.: o callback da Web e `fitai://auth` do App).
+3. O cliente troca o código por um **JWT** em `POST /auth/token`.
+4. Todas as chamadas seguintes usam `Authorization: Bearer <token>`. O papel e o bloqueio são lidos do banco a cada requisição, então promover ou bloquear alguém vale na hora.
 
-**Use Cases** (`src/usecases/`)
-: Uma classe por caso de uso, nomeada com verbo, com método `execute(dto: InputDto): Promise<OutputDto>`. Usam transações do Prisma quando precisam de atomicidade (ex.: desativar o plano ativo antes de criar o novo). Não tratam erro: lançam erros customizados.
+Em desenvolvimento, `POST /auth/dev-login` permite entrar só com um e-mail, sem Google (`Auth:EnableDevLogin`).
 
-**Schemas** (`src/schemas/index.ts`)
-: Schemas Zod 4 compartilhados entre validação e OpenAPI. Dia da semana é sempre `z.enum(WeekDay)`, nunca `z.string()`.
+### Coach AI com provedor configurável
 
-**Erros** (`src/errors/index.ts`)
-: `NotFoundError` (404), `WorkoutPlanNotActiveError` e `SessionAlreadyStartedError` (409), `ExternalServiceError` (falha em serviço externo, como o YouTube).
+O chat usa `Microsoft.Extensions.AI` (`IChatClient` + tools). O provedor padrão é a **OpenAI**, mas qualquer provedor listado em `Ai:Providers` pode ser escolhido — pelo `appsettings` ou pelo admin no painel (`/admin`):
 
-**Autenticação** (`src/lib/auth.ts`)
-: Better-Auth com adaptador Prisma e login social do Google (`prompt: "select_account"`). Rotas em `/api/auth/*`. Em produção, cookies valem para `.fullstackclub.com.br`.
+| Tipo | Exemplos |
+| --- | --- |
+| `OpenAI` (endpoint compatível com OpenAI) | OpenAI, Google Gemini, Ollama, OpenRouter, Groq |
+| `AzureOpenAI` | Azure OpenAI |
 
-**Coach AI** (`src/routes/ai.ts`)
-: Vercel AI SDK 6 com `streamText` e até 10 passos de tool. Tools: `getUserTrainData`, `updateUserTrainData` (inclui o nome), `getWorkoutPlans`, `createWorkoutPlan` (inclui o objetivo) e `searchExerciseVideos`. O system prompt define o tom, o onboarding, os objetivos, o fluxo de "Mudar objetivo", os splits por número de dias, as imagens de capa e as dúvidas sobre exercícios — com vídeo real, nunca link inventado.
+As chaves ficam só na configuração (User Secrets / variáveis de ambiente); no painel o admin escolhe o provedor, o modelo, o prompt do sistema e as imagens de capa. As tools do chat são: `getUserTrainData`, `updateUserTrainData`, `getWorkoutPlans`, `createWorkoutPlan` e `searchExerciseVideos` — sempre com o `userId` do usuário autenticado, nunca vindo do modelo.
 
-**Sequência** (`src/lib/workout-streak.ts`)
-: Função pura usada pela Home e por Stats, sem acesso ao banco. Os use cases buscam as sessões e passam os dados.
+### Rotas da API (planejadas)
 
-**Ambiente** (`src/lib/env.ts`)
-: Variáveis validadas com Zod na subida. Se faltar alguma obrigatória, o servidor não sobe.
+| Método | Rota | Tela |
+| --- | --- | --- |
+| `GET` | `/auth/google/login` · `/auth/google/callback` | Login |
+| `POST` | `/auth/token` · `/auth/dev-login` | Login |
+| `GET` | `/auth/me` | Todas |
+| `GET` | `/home/{date}` | Home |
+| `GET` · `PUT` | `/me` | Onboarding / Perfil |
+| `POST` | `/me/teacher` | Informar código de convite |
+| `GET` | `/stats?from=&to=` | Evolução |
+| `GET` · `POST` | `/workout-plans` | Plano de Treino |
+| `GET` | `/workout-plans/{planId}` | Plano de Treino |
+| `GET` | `/workout-plans/{planId}/days/{dayId}` | Treino de Hoje / Dia do Plano |
+| `POST` | `/workout-plans/{planId}/days/{dayId}/sessions` | Iniciar treino |
+| `PATCH` | `/workout-plans/{planId}/days/{dayId}/sessions/{sessionId}` | Marcar como concluído |
+| `POST` | `/coach/chat` | Chat / Onboarding |
+| `GET` | `/admin/dashboard` | Painel |
+| `GET` · `PATCH` | `/admin/users` · `/admin/users/{id}` | Alunos e professores |
+| `POST` · `PUT` · `DELETE` | `/admin/users/{id}/workout-plans` · `/admin/workout-plans/{id}` | Planos dos alunos |
+| `GET` · `POST` · `DELETE` | `/admin/invites` · `/admin/invite-codes` | Convites |
+| `GET` · `PUT` | `/admin/ai-settings` | Configurações do Coach AI |
 
-### Rotas
+### Modelo de dados
 
-| Método       | Rota                                                                   | Tela                          | Use case               |
-| ------------ | ---------------------------------------------------------------------- | ----------------------------- | ---------------------- |
-| `GET`        | `/home/:date`                                                          | Home                          | `GetHomeData`          |
-| `GET`        | `/me`                                                                  | Perfil                        | `GetUserTrainData`     |
-| `PUT`        | `/me`                                                                  | Onboarding / Perfil           | `UpsertUserTrainData`  |
-| `GET`        | `/stats?from=&to=`                                                     | Evolução                      | `GetStats`             |
-| `GET`        | `/workout-plans?active=`                                               | Plano de Treino               | `ListWorkoutPlans`     |
-| `POST`       | `/workout-plans`                                                       | (Coach AI)                    | `CreateWorkoutPlan`    |
-| `GET`        | `/workout-plans/:workoutPlanId`                                        | Plano de Treino               | `GetWorkoutPlan`       |
-| `GET`        | `/workout-plans/:workoutPlanId/days/:workoutDayId`                     | Treino de Hoje / Dia do Plano | `GetWorkoutDay`        |
-| `POST`       | `/workout-plans/:workoutPlanId/days/:workoutDayId/sessions`            | Iniciar Treino                | `StartWorkoutSession`  |
-| `PATCH`      | `/workout-plans/:workoutPlanId/days/:workoutDayId/sessions/:sessionId` | Marcar como concluído         | `UpdateWorkoutSession` |
-| `POST`       | `/ai`                                                                  | Chat / Onboarding             | (tools acima)          |
-| `GET`/`POST` | `/api/auth/*`                                                          | Login / Sair da conta         | Better-Auth            |
+Peso em **gramas**, altura em **centímetros**, gordura corporal em **inteiro de 0 a 100**, duração e descanso em **segundos**. Datas com fuso (`timestamptz`). Excluir um plano apaga dias, exercícios e sessões em cascata.
 
-### Modelo de Dados
-
-Peso em **gramas** (`Int`); altura em **centímetros**; gordura corporal em **inteiro de 0 a 100**; duração e descanso em **segundos**. Datas com fuso (`Timestamptz`). Excluir um plano apaga dias, exercícios e sessões em cascata.
-
-| Tabela                                 | O que armazena                                                                                    |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `user`                                 | Nome, e-mail, foto, peso (g), altura (cm), idade, % de gordura                                    |
-| `WorkoutPlan`                          | Nome, dono, objetivo (`WorkoutGoal`), imagem de capa, se é o plano ativo (só um ativo por pessoa) |
-| `WorkoutDay`                           | Plano, nome, dia da semana (`WeekDay`), se é descanso, duração estimada (s), imagem de capa       |
-| `WorkoutExercise`                      | Dia, ordem, nome, séries, repetições, descanso (s)                                                |
-| `WorkoutSession`                       | Dia, início, conclusão (vazia = só iniciada)                                                      |
-| `session` · `account` · `verification` | Tabelas do Better-Auth                                                                            |
+| Tabela | O que armazena |
+| --- | --- |
+| `Users` | Nome, e-mail, foto, papel, professor, bloqueado, IA pode criar planos, peso, altura, idade, % de gordura |
+| `ExternalLogins` | Vínculo com o login do Google |
+| `WorkoutPlans` | Aluno, nome, objetivo, capa, ativo (um por aluno), origem (IA ou professor) |
+| `WorkoutDays` | Plano, nome, dia da semana, descanso, duração estimada, capa |
+| `WorkoutExercises` | Dia, ordem, nome, séries, repetições, descanso |
+| `WorkoutSessions` | Dia, início, conclusão (vazia = só iniciada) |
+| `EmailInvites` | Convites por e-mail (aluno ou professor) |
+| `InviteCodes` | Códigos de convite do professor (validade, limite de usos, ativo) |
+| `AuthCodes` | Códigos de uso único do login |
+| `AppSettings` | Configurações editáveis no painel (Coach AI) |
 
 ---
 
 ## 🎯 Sequência e consistência
 
-A **sequência** (🔥) conta, a partir da data pedida para trás, os dias seguidos em que o plano ativo foi cumprido. **Dia de descanso conta** mesmo sem sessão. Dia da semana que não está no plano é pulado. **Hoje não quebra a sequência:** se o treino de hoje já foi concluído, conta; se não, é ignorado. A contagem para no primeiro dia de treino anterior sem sessão concluída, ou na data de criação do plano. Em Evolução, um `to` no futuro é tratado como hoje.
+A **sequência** (🔥) conta, a partir da data pedida para trás, os dias seguidos em que o plano ativo foi cumprido. **Dia de descanso conta** mesmo sem sessão. Dia da semana que não está no plano é pulado. **Hoje não quebra a sequência:** se o treino de hoje já foi concluído, conta; se não, é ignorado. A contagem para no primeiro dia de treino anterior sem sessão concluída, ou na data de criação do plano.
 
-A **consistência** agrupa as sessões pela data de início (UTC): sessão concluída marca `workoutDayCompleted` e `workoutDayStarted`; sessão só iniciada marca apenas `workoutDayStarted`. Na **Home**, vem a semana inteira (domingo a sábado), inclusive dias sem sessão. Em **Evolução**, vêm só os dias com sessão dentro de `from`–`to`.
-
-**Taxa de conclusão** = sessões concluídas ÷ total de sessões (0 se não houver). **Tempo total** = soma de (conclusão − início) das sessões concluídas, em segundos. Um dia só pode ser iniciado uma vez (409), e só em plano ativo (409).
+A **consistência** agrupa as sessões pela data de início (UTC). Na **Home**, vem a semana inteira (domingo a sábado); em **Evolução**, só os dias com sessão dentro de `from`–`to`. **Taxa de conclusão** = sessões concluídas ÷ total de sessões. **Tempo total** = soma de (conclusão − início) das sessões concluídas, em segundos. O treino de um dia só pode ser iniciado uma vez **por data** (409), e só em plano ativo (422).
 
 ---
 
@@ -150,112 +169,74 @@ A **consistência** agrupa as sessões pela data de início (UTC): sessão concl
 
 ### 1. Pré-requisitos
 
-| Componente      | Requisito                                                                       |
-| --------------- | ------------------------------------------------------------------------------- |
-| **Node.js**     | 24.x (`.nvmrc`; `engine-strict` ligado)                                         |
-| **pnpm**        | 10.30.0 (`corepack enable`)                                                     |
-| **Docker**      | Para o PostgreSQL 16 (`docker-compose.yml`)                                     |
-| **Credenciais** | Google OAuth (client id e secret), chave da OpenAI e, opcionalmente, do YouTube |
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- Docker (para o PostgreSQL) ou um PostgreSQL 16 local
+- Para o App: workload MAUI (`dotnet workload install maui-android`) e o Android SDK (Visual Studio 2022+/Rider já instalam)
+- Ferramenta do EF Core: `dotnet tool install --global dotnet-ef`
 
-### 2. Configurar o ambiente
+### 2. Banco
 
-```sh
-cp .env.example .env
+```bash
+docker compose up -d
 ```
 
-| Variável                                    | Uso                                                                                                             |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `PORT`                                      | Porta da API (padrão `8080`)                                                                                    |
-| `DATABASE_URL`                              | `postgresql://postgres:password@localhost:5432/bootcamp-treinos-api` com o compose local                        |
-| `BETTER_AUTH_SECRET`                        | Segredo das sessões                                                                                             |
-| `API_BASE_URL`                              | URL pública da API (padrão `http://localhost:8080`)                                                             |
-| `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | Login com Google                                                                                                |
-| `OPENAI_API_KEY`                            | Coach AI (`gpt-4o-mini`) — obrigatória                                                                          |
-| `YOUTUBE_API_KEY`                           | Opcional. Vídeos de exercício no chat (YouTube Data API v3). Sem ela, o chat indica um link de busca do YouTube |
-| `GOOGLE_GENERATIVE_AI_API_KEY`              | Opcional, sem uso hoje                                                                                          |
-| `WEB_APP_BASE_URL`                          | Origem do front (CORS e Better-Auth)                                                                            |
-| `NODE_ENV`                                  | `development`, `production` ou `test`                                                                           |
+### 3. Segredos
 
-### 3. Banco e dependências
+As chaves ficam em [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), nunca no `appsettings.json`:
 
-```sh
-docker-compose up -d
-pnpm install
-pnpm exec prisma migrate dev
+```bash
+cd backend/FitAi.Api
+dotnet user-secrets set "Auth:JwtSecret" "<string aleatória com 32+ caracteres>"
+dotnet user-secrets set "Auth:Google:ClientId" "<client id>"
+dotnet user-secrets set "Auth:Google:ClientSecret" "<client secret>"
+dotnet user-secrets set "Ai:Providers:OpenAI:ApiKey" "<chave da OpenAI>"
+dotnet user-secrets set "YouTube:ApiKey" "<chave do YouTube Data API>"   # opcional
 ```
+
+E defina quem é admin em `Auth:AdminEmails` no `appsettings.Development.json`.
 
 ### 4. Rodar
 
-```sh
-pnpm dev
+```bash
+dotnet ef database update --project backend/FitAi.Api   # aplica as migrations
+dotnet run --project backend/FitAi.Api                   # API
+dotnet run --project frontend/FitAi.Web                  # Web
 ```
 
-A documentação interativa fica em **`/docs`** (Scalar), com a API e as rotas de autenticação. O OpenAPI puro está em **`/swagger.json`**.
+O App é executado pelo Visual Studio ou Rider num emulador ou aparelho Android. No emulador, a API local fica em `http://10.0.2.2:<porta>`.
 
-### 5. Qualidade
+### 5. Testes
 
-```sh
-pnpm exec eslint .
-pnpm exec prettier --write .
+```bash
+dotnet test tests/FitAi.Api.Tests
 ```
-
-> ⚠️ **Ainda não há testes automatizados.** As regras de sequência, consistência e estatísticas estão nos use cases e são as primeiras candidatas a teste.
-
-### 6. Build e Docker
-
-```sh
-pnpm build            # prisma generate + tsc → dist/
-docker build -t bootcamp-treinos-api .
-```
-
-> ⚠️ **A imagem não roda migrations.** Aplique `pnpm exec prisma migrate deploy` no banco de produção antes de subir uma versão com migration nova.
 
 ---
 
 ## 📂 Estrutura de Pastas
 
-- **`CLAUDE.md`** — orientação do projeto para o Claude Code
-- **`README.md`** — este arquivo
-- **`.claude/rules/`** — regras de arquitetura, TypeScript e gerais (rotas, use cases, commits)
-- **`docs/API_PROMPT.md`** — template de prompt para criar uma rota
-- **`tasks/`** — as tarefas 01 a 11 que deram origem às rotas e correções
-- **`prisma/`** — `schema.prisma` e `migrations/`
-- **`src/`** — o código
-
 ```
-bootcamp-treinos-FSC/
-├── CLAUDE.md · README.md · Dockerfile · docker-compose.yml · .env.example
-├── .claude/rules/
-├── docs/API_PROMPT.md
-├── tasks/                     (01.md … 11.md)
-├── prisma/
-│   ├── schema.prisma
-│   └── migrations/
-└── src/
-    ├── index.ts               (Fastify, CORS, Swagger, Scalar, registro das rotas)
-    ├── lib/                   (auth.ts · db.ts · env.ts · workout-streak.ts)
-    ├── routes/                (ai · home · me · stats · workout-plan)
-    ├── usecases/              (11 casos de uso)
-    ├── schemas/index.ts
-    ├── errors/index.ts
-    └── generated/prisma/      (FORA DO GIT — gerado pelo Prisma)
+FitAi.slnx
+├── backend/FitAi.Api/          # API REST (controllers, use cases, EF Core, auth, Coach AI)
+├── frontend/FitAi.Web/         # MVC + Razor (telas do aluno e área /admin)
+├── app/FitAi.App/              # .NET MAUI (Android)
+├── shared/FitAi.Contracts/     # DTOs de request/response e enums compartilhados
+├── tests/FitAi.Api.Tests/      # xUnit
+├── docker-compose.yml          # PostgreSQL 16
+├── docs/                       # template de prompt para novas rotas
+└── tasks/                      # especificações originais das funcionalidades
 ```
 
 ---
 
 ## 📚 Documentação
 
-- [`CLAUDE.md`](CLAUDE.md): visão geral, comandos e convenções
-- [`.claude/rules/architecture.md`](.claude/rules/architecture.md): como escrever rotas e use cases, com exemplos
-- [`.claude/rules/general.md`](.claude/rules/general.md): stack e estrutura
-- [`.claude/rules/typescript.md`](.claude/rules/typescript.md): convenções de TypeScript
-- [`docs/API_PROMPT.md`](docs/API_PROMPT.md): template para pedir uma rota nova
-- [`tasks/`](tasks/): especificação de cada rota entregue
-- [`prisma/schema.prisma`](prisma/schema.prisma): o modelo de dados
-- `/docs` (com o servidor rodando): referência interativa da API
+- [`CLAUDE.md`](CLAUDE.md) e [`.claude/rules/`](.claude/rules/): convenções do projeto
+- [`tasks/`](tasks/): especificação de cada funcionalidade (escritas na versão Node.js; as regras de negócio valem para a versão .NET)
+- `/docs` (com a API rodando): referência interativa da API (Scalar)
 
 ---
 
 ## 📄 Licença e Uso
 
-Projeto desenvolvido no bootcamp do Full Stack Club. O `package.json` declara a licença **ISC**; nenhum arquivo `LICENSE` foi adicionado ainda.
+Projeto desenvolvido no bootcamp do Full Stack Club. Nenhum arquivo `LICENSE` foi adicionado ainda.
