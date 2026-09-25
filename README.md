@@ -15,7 +15,7 @@
 
 ## 📋 Introdução
 
-Entre com o Google e converse com o **Coach AI**: ele pergunta **peso**, **altura**, **idade** e **% de gordura**, depois o **objetivo**, os **dias disponíveis** e as **restrições**, e monta um **plano de treino de 7 dias** — com divisão (split), exercícios, séries, repetições, descanso e imagem de capa. No dia a dia, a pessoa **inicia** e **conclui** o treino do dia, e a API calcula a **sequência** (🔥), a **consistência** por dia, os **treinos feitos**, a **taxa de conclusão** e o **tempo total**.
+Entre com o Google e converse com o **Coach AI**: ele pergunta **peso**, **altura**, **idade** e **% de gordura**, depois o **objetivo**, os **dias disponíveis** e as **restrições**, e monta um **plano de treino de 7 dias** com o **objetivo** marcado — com divisão (split), exercícios, séries, repetições, descanso e imagem de capa. No dia a dia, a pessoa **inicia** e **conclui** o treino do dia, e a API calcula a **sequência** (🔥), a **consistência** por dia, os **treinos feitos**, a **taxa de conclusão** e o **tempo total**.
 
 As telas atendidas são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoje, Plano de Treino, Dia do Plano, Evolução e Perfil.**
 
@@ -25,17 +25,19 @@ As telas atendidas são: **Login, AI Onboarding, Home, Chat da IA, Treino de Hoj
 
 ### Estado atual
 
-O projeto foi construído em aulas, cada uma em uma branch. **`main` = `aula-03`**, que contém `aula-00` e `aula-01` (histórico linear, sem conflitos). As tarefas que deram origem às rotas estão em [`tasks/`](tasks/) (01 a 08, todas implementadas).
+O projeto foi construído em aulas (`aula-00`, `aula-01`, `aula-03`), cada uma em uma branch. Todas foram unidas na **`main`** (histórico linear, sem conflitos) e apagadas depois. As tarefas que deram origem às rotas estão em [`tasks/`](tasks/) (01 a 11, todas implementadas).
 
-| Fase | Entrega | Estado |
-|---|---|---|
-| **aula-00** | Fundação: Fastify + Zod, Prisma + PostgreSQL, Better-Auth, plano de treino, sessões (iniciar/concluir), Home, Plano, Dia, Stats, `/me`, rotas da IA | Entregue |
-| **aula-01** | Login com Google (sempre pede a conta), `todayWorkoutDay` opcional na Home, modelo OpenAI no chat | Entregue |
-| **aula-03** | Variáveis de ambiente validadas com Zod, Dockerfile, pino-pretty, migrations do Prisma, cookies entre subdomínios em produção | Entregue |
-| **Próxima** | Objetivo (`goal`) e capa (`coverImageUrl`) do plano; "Mudar objetivo" no chat; salvar o nome informado no onboarding | Pendente |
-| **Depois** | Vídeo do exercício no chat; assinatura ("Plano Básico") | Pendente |
+| Fase        | Entrega                                                                                                                                                      | Estado   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| **aula-00** | Fundação: Fastify + Zod, Prisma + PostgreSQL, Better-Auth, plano de treino, sessões (iniciar/concluir), Home, Plano, Dia, Stats, `/me`, rotas da IA          | Entregue |
+| **aula-01** | Login com Google (sempre pede a conta), `todayWorkoutDay` opcional na Home, modelo OpenAI no chat                                                            | Entregue |
+| **aula-03** | Variáveis de ambiente validadas com Zod, Dockerfile, pino-pretty, migrations do Prisma, cookies entre subdomínios em produção                                | Entregue |
+| **task 09** | Objetivo (`goal`) e capa (`coverImageUrl`) do plano; "Mudar objetivo" no chat; nome salvo no onboarding                                                      | Entregue |
+| **task 10** | Correções: criar plano não desativa mais o plano de outra pessoa; sequência não zera enquanto o treino de hoje não é concluído; `OPENAI_API_KEY` obrigatória | Entregue |
+| **task 11** | Vídeo do exercício no chat (YouTube Data API, com link de busca como alternativa)                                                                            | Entregue |
+| **Depois**  | Assinatura ("Plano Básico")                                                                                                                                  | Pendente |
 
-**O que falta para o Figma é pouco:** todas as telas já têm rota. As lacunas são o objetivo e a capa do **plano** (tela Plano de Treino e botão "Mudar objetivo") — o resto é formatação no front.
+**Todas as telas do Figma têm rota.** O que ainda fica no front: reordenar a semana (a API vai de domingo a sábado; o Figma, de segunda a domingo), formatar peso, taxa e tempo, e o texto "Plano Básico".
 
 ---
 
@@ -88,52 +90,55 @@ graph TD
 : Schemas Zod 4 compartilhados entre validação e OpenAPI. Dia da semana é sempre `z.enum(WeekDay)`, nunca `z.string()`.
 
 **Erros** (`src/errors/index.ts`)
-: `NotFoundError` (404), `WorkoutPlanNotActiveError` e `SessionAlreadyStartedError` (409).
+: `NotFoundError` (404), `WorkoutPlanNotActiveError` e `SessionAlreadyStartedError` (409), `ExternalServiceError` (falha em serviço externo, como o YouTube).
 
 **Autenticação** (`src/lib/auth.ts`)
 : Better-Auth com adaptador Prisma e login social do Google (`prompt: "select_account"`). Rotas em `/api/auth/*`. Em produção, cookies valem para `.fullstackclub.com.br`.
 
 **Coach AI** (`src/routes/ai.ts`)
-: Vercel AI SDK 6 com `streamText` e até 10 passos de tool. Tools: `getUserTrainData`, `updateUserTrainData`, `getWorkoutPlans`, `createWorkoutPlan`. O system prompt define o tom, o onboarding, os splits por número de dias e as imagens de capa.
+: Vercel AI SDK 6 com `streamText` e até 10 passos de tool. Tools: `getUserTrainData`, `updateUserTrainData` (inclui o nome), `getWorkoutPlans`, `createWorkoutPlan` (inclui o objetivo) e `searchExerciseVideos`. O system prompt define o tom, o onboarding, os objetivos, o fluxo de "Mudar objetivo", os splits por número de dias, as imagens de capa e as dúvidas sobre exercícios — com vídeo real, nunca link inventado.
+
+**Sequência** (`src/lib/workout-streak.ts`)
+: Função pura usada pela Home e por Stats, sem acesso ao banco. Os use cases buscam as sessões e passam os dados.
 
 **Ambiente** (`src/lib/env.ts`)
 : Variáveis validadas com Zod na subida. Se faltar alguma obrigatória, o servidor não sobe.
 
 ### Rotas
 
-| Método | Rota | Tela | Use case |
-|---|---|---|---|
-| `GET` | `/home/:date` | Home | `GetHomeData` |
-| `GET` | `/me` | Perfil | `GetUserTrainData` |
-| `PUT` | `/me` | Onboarding / Perfil | `UpsertUserTrainData` |
-| `GET` | `/stats?from=&to=` | Evolução | `GetStats` |
-| `GET` | `/workout-plans?active=` | Plano de Treino | `ListWorkoutPlans` |
-| `POST` | `/workout-plans` | (Coach AI) | `CreateWorkoutPlan` |
-| `GET` | `/workout-plans/:workoutPlanId` | Plano de Treino | `GetWorkoutPlan` |
-| `GET` | `/workout-plans/:workoutPlanId/days/:workoutDayId` | Treino de Hoje / Dia do Plano | `GetWorkoutDay` |
-| `POST` | `/workout-plans/:workoutPlanId/days/:workoutDayId/sessions` | Iniciar Treino | `StartWorkoutSession` |
-| `PATCH` | `/workout-plans/:workoutPlanId/days/:workoutDayId/sessions/:sessionId` | Marcar como concluído | `UpdateWorkoutSession` |
-| `POST` | `/ai` | Chat / Onboarding | (tools acima) |
-| `GET`/`POST` | `/api/auth/*` | Login / Sair da conta | Better-Auth |
+| Método       | Rota                                                                   | Tela                          | Use case               |
+| ------------ | ---------------------------------------------------------------------- | ----------------------------- | ---------------------- |
+| `GET`        | `/home/:date`                                                          | Home                          | `GetHomeData`          |
+| `GET`        | `/me`                                                                  | Perfil                        | `GetUserTrainData`     |
+| `PUT`        | `/me`                                                                  | Onboarding / Perfil           | `UpsertUserTrainData`  |
+| `GET`        | `/stats?from=&to=`                                                     | Evolução                      | `GetStats`             |
+| `GET`        | `/workout-plans?active=`                                               | Plano de Treino               | `ListWorkoutPlans`     |
+| `POST`       | `/workout-plans`                                                       | (Coach AI)                    | `CreateWorkoutPlan`    |
+| `GET`        | `/workout-plans/:workoutPlanId`                                        | Plano de Treino               | `GetWorkoutPlan`       |
+| `GET`        | `/workout-plans/:workoutPlanId/days/:workoutDayId`                     | Treino de Hoje / Dia do Plano | `GetWorkoutDay`        |
+| `POST`       | `/workout-plans/:workoutPlanId/days/:workoutDayId/sessions`            | Iniciar Treino                | `StartWorkoutSession`  |
+| `PATCH`      | `/workout-plans/:workoutPlanId/days/:workoutDayId/sessions/:sessionId` | Marcar como concluído         | `UpdateWorkoutSession` |
+| `POST`       | `/ai`                                                                  | Chat / Onboarding             | (tools acima)          |
+| `GET`/`POST` | `/api/auth/*`                                                          | Login / Sair da conta         | Better-Auth            |
 
 ### Modelo de Dados
 
 Peso em **gramas** (`Int`); altura em **centímetros**; gordura corporal em **inteiro de 0 a 100**; duração e descanso em **segundos**. Datas com fuso (`Timestamptz`). Excluir um plano apaga dias, exercícios e sessões em cascata.
 
-| Tabela | O que armazena |
-|---|---|
-| `user` | Nome, e-mail, foto, peso (g), altura (cm), idade, % de gordura |
-| `WorkoutPlan` | Nome, dono, se é o plano ativo (só um ativo por vez) |
-| `WorkoutDay` | Plano, nome, dia da semana (`WeekDay`), se é descanso, duração estimada (s), imagem de capa |
-| `WorkoutExercise` | Dia, ordem, nome, séries, repetições, descanso (s) |
-| `WorkoutSession` | Dia, início, conclusão (vazia = só iniciada) |
-| `session` · `account` · `verification` | Tabelas do Better-Auth |
+| Tabela                                 | O que armazena                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `user`                                 | Nome, e-mail, foto, peso (g), altura (cm), idade, % de gordura                                    |
+| `WorkoutPlan`                          | Nome, dono, objetivo (`WorkoutGoal`), imagem de capa, se é o plano ativo (só um ativo por pessoa) |
+| `WorkoutDay`                           | Plano, nome, dia da semana (`WeekDay`), se é descanso, duração estimada (s), imagem de capa       |
+| `WorkoutExercise`                      | Dia, ordem, nome, séries, repetições, descanso (s)                                                |
+| `WorkoutSession`                       | Dia, início, conclusão (vazia = só iniciada)                                                      |
+| `session` · `account` · `verification` | Tabelas do Better-Auth                                                                            |
 
 ---
 
 ## 🎯 Sequência e consistência
 
-A **sequência** (🔥) conta, a partir da data pedida para trás, os dias seguidos em que o plano ativo foi cumprido. **Dia de descanso conta** mesmo sem sessão. Dia da semana que não está no plano é pulado. A contagem para no primeiro dia de treino sem sessão concluída.
+A **sequência** (🔥) conta, a partir da data pedida para trás, os dias seguidos em que o plano ativo foi cumprido. **Dia de descanso conta** mesmo sem sessão. Dia da semana que não está no plano é pulado. **Hoje não quebra a sequência:** se o treino de hoje já foi concluído, conta; se não, é ignorado. A contagem para no primeiro dia de treino anterior sem sessão concluída, ou na data de criação do plano. Em Evolução, um `to` no futuro é tratado como hoje.
 
 A **consistência** agrupa as sessões pela data de início (UTC): sessão concluída marca `workoutDayCompleted` e `workoutDayStarted`; sessão só iniciada marca apenas `workoutDayStarted`. Na **Home**, vem a semana inteira (domingo a sábado), inclusive dias sem sessão. Em **Evolução**, vêm só os dias com sessão dentro de `from`–`to`.
 
@@ -145,12 +150,12 @@ A **consistência** agrupa as sessões pela data de início (UTC): sessão concl
 
 ### 1. Pré-requisitos
 
-| Componente | Requisito |
-|---|---|
-| **Node.js** | 24.x (`.nvmrc`; `engine-strict` ligado) |
-| **pnpm** | 10.30.0 (`corepack enable`) |
-| **Docker** | Para o PostgreSQL 16 (`docker-compose.yml`) |
-| **Credenciais** | Google OAuth (client id e secret) e chave da OpenAI |
+| Componente      | Requisito                                                                       |
+| --------------- | ------------------------------------------------------------------------------- |
+| **Node.js**     | 24.x (`.nvmrc`; `engine-strict` ligado)                                         |
+| **pnpm**        | 10.30.0 (`corepack enable`)                                                     |
+| **Docker**      | Para o PostgreSQL 16 (`docker-compose.yml`)                                     |
+| **Credenciais** | Google OAuth (client id e secret), chave da OpenAI e, opcionalmente, do YouTube |
 
 ### 2. Configurar o ambiente
 
@@ -158,17 +163,18 @@ A **consistência** agrupa as sessões pela data de início (UTC): sessão concl
 cp .env.example .env
 ```
 
-| Variável | Uso |
-|---|---|
-| `PORT` | Porta da API (padrão `8080`) |
-| `DATABASE_URL` | `postgresql://postgres:password@localhost:5432/bootcamp-treinos-api` com o compose local |
-| `BETTER_AUTH_SECRET` | Segredo das sessões |
-| `API_BASE_URL` | URL pública da API (padrão `http://localhost:8080`) |
-| `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | Login com Google |
-| `OPENAI_API_KEY` | Coach AI (`gpt-4o-mini`) |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Obrigatória na validação do ambiente, embora o chat use hoje a OpenAI |
-| `WEB_APP_BASE_URL` | Origem do front (CORS e Better-Auth) |
-| `NODE_ENV` | `development`, `production` ou `test` |
+| Variável                                    | Uso                                                                                                             |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `PORT`                                      | Porta da API (padrão `8080`)                                                                                    |
+| `DATABASE_URL`                              | `postgresql://postgres:password@localhost:5432/bootcamp-treinos-api` com o compose local                        |
+| `BETTER_AUTH_SECRET`                        | Segredo das sessões                                                                                             |
+| `API_BASE_URL`                              | URL pública da API (padrão `http://localhost:8080`)                                                             |
+| `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | Login com Google                                                                                                |
+| `OPENAI_API_KEY`                            | Coach AI (`gpt-4o-mini`) — obrigatória                                                                          |
+| `YOUTUBE_API_KEY`                           | Opcional. Vídeos de exercício no chat (YouTube Data API v3). Sem ela, o chat indica um link de busca do YouTube |
+| `GOOGLE_GENERATIVE_AI_API_KEY`              | Opcional, sem uso hoje                                                                                          |
+| `WEB_APP_BASE_URL`                          | Origem do front (CORS e Better-Auth)                                                                            |
+| `NODE_ENV`                                  | `development`, `production` ou `test`                                                                           |
 
 ### 3. Banco e dependências
 
@@ -212,7 +218,7 @@ docker build -t bootcamp-treinos-api .
 - **`README.md`** — este arquivo
 - **`.claude/rules/`** — regras de arquitetura, TypeScript e gerais (rotas, use cases, commits)
 - **`docs/API_PROMPT.md`** — template de prompt para criar uma rota
-- **`tasks/`** — as tarefas 01 a 08 que deram origem às rotas
+- **`tasks/`** — as tarefas 01 a 11 que deram origem às rotas e correções
 - **`prisma/`** — `schema.prisma` e `migrations/`
 - **`src/`** — o código
 
@@ -221,15 +227,15 @@ bootcamp-treinos-FSC/
 ├── CLAUDE.md · README.md · Dockerfile · docker-compose.yml · .env.example
 ├── .claude/rules/
 ├── docs/API_PROMPT.md
-├── tasks/                     (01.md … 08.md)
+├── tasks/                     (01.md … 11.md)
 ├── prisma/
 │   ├── schema.prisma
 │   └── migrations/
 └── src/
     ├── index.ts               (Fastify, CORS, Swagger, Scalar, registro das rotas)
-    ├── lib/                   (auth.ts · db.ts · env.ts)
+    ├── lib/                   (auth.ts · db.ts · env.ts · workout-streak.ts)
     ├── routes/                (ai · home · me · stats · workout-plan)
-    ├── usecases/              (10 casos de uso)
+    ├── usecases/              (11 casos de uso)
     ├── schemas/index.ts
     ├── errors/index.ts
     └── generated/prisma/      (FORA DO GIT — gerado pelo Prisma)
