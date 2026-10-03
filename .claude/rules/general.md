@@ -39,4 +39,4 @@ OpenAPI em `/swagger.json` e Scalar em `/docs` quando a API está rodando.
 
 ## MCPs
 
-- **SEMPRE** use Context7 para buscar documentações
+- **SEMPRE** use Context7 para buscar documentações (instalação: `docs/CONTEXT7.md`)
