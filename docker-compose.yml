@@ -54,8 +54,12 @@ services:
     environment:
       Api__BaseUrl: http://api:8080
       Api__PublicUrl: http://localhost:8080
+      DataProtection__KeysPath: /keys
+    volumes:
+      - web_keys:/keys
     ports:
       - "127.0.0.1:3000:3000"
 
 volumes:
   postgres_data:
+  web_keys:

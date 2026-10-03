@@ -16,6 +16,9 @@ public sealed record GatewayPayment(
     string? BankSlipUrl,
     DateTimeOffset? PaymentDate);
 
+/// <summary>Cobrança consultada no provedor, com a assinatura a que pertence.</summary>
+public sealed record GatewayPaymentDetail(GatewayPayment Payment, string? SubscriptionId);
+
 public sealed record GatewayPixQrCode(string EncodedImage, string Payload, DateTimeOffset? ExpirationDate);
 
 /// <summary>Erro do provedor com mensagem segura para log (sem chave nem documento).</summary>
@@ -45,6 +48,9 @@ public interface IPaymentGateway
         CancellationToken ct = default);
 
     Task<IReadOnlyList<GatewayPayment>> ListSubscriptionPaymentsAsync(string subscriptionId, CancellationToken ct = default);
+
+    /// <summary>Consulta a cobrança no provedor (usado para confirmar o webhook). Nulo se não existir.</summary>
+    Task<GatewayPaymentDetail?> GetPaymentAsync(string paymentId, CancellationToken ct = default);
 
     Task<GatewayPixQrCode> GetPixQrCodeAsync(string paymentId, CancellationToken ct = default);
 

@@ -11,11 +11,12 @@ namespace FitAi.Api.UseCases.Billing;
 
 /// <summary>
 /// Desenvolvimento com o provedor Fake: gera o mesmo evento PAYMENT_RECEIVED que o Asaas mandaria e o aplica pelo
-/// mesmo caminho do webhook (<see cref="HandlePaymentWebhook"/>). Indisponível fora de Development ou com o Asaas.
+/// mesmo caminho do webhook (<see cref="HandlePaymentWebhook"/>), depois de marcar a cobrança como paga no provedor Fake. Indisponível fora de Development ou com o Asaas.
 /// </summary>
 public sealed class SimulatePayment(
     AppDbContext db,
     HandlePaymentWebhook handlePaymentWebhook,
+    IPaymentGateway gateway,
     IOptions<PaymentsOptions> paymentsOptions,
     IWebHostEnvironment environment,
     TimeProvider timeProvider)
@@ -35,6 +36,7 @@ public sealed class SimulatePayment(
             ?? throw new NotFoundException("Nenhuma cobrança em aberto");
 
         var now = timeProvider.GetUtcNow();
+        ((FakePaymentGateway)gateway).MarkPaid(payment.ProviderPaymentId, now);
         await handlePaymentWebhook.ExecuteAsync(new HandlePaymentWebhook.Input(new PaymentWebhookEvent(
             "evt_sim_" + Guid.NewGuid().ToString("N")[..12], "PAYMENT_RECEIVED", subscription!.ProviderSubscriptionId, payment.ProviderPaymentId,
             payment.Value, payment.DueDate, now, PaymentMapping.ToBillingType(payment.Method), "RECEIVED",

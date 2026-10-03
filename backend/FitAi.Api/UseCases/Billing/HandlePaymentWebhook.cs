@@ -11,8 +11,11 @@ namespace FitAi.Api.UseCases.Billing;
 /// Aplica um evento do provedor. O webhook é a fonte da verdade do pagamento.
 /// Idempotência atômica: reivindica o id do evento ANTES de qualquer efeito (INSERT ... ON CONFLICT DO NOTHING)
 /// e libera a reivindicação se algo falhar, para o reenvio do provedor ser processado.
+/// Eventos de cobrança são reconsultados no provedor: os dados aplicados vêm da consulta, não do corpo,
+/// então um token vazado não basta para liberar uma assinatura.
 /// </summary>
-public sealed class HandlePaymentWebhook(AppDbContext db, TimeProvider timeProvider, ILogger<HandlePaymentWebhook> logger)
+public sealed class HandlePaymentWebhook(
+    AppDbContext db, IPaymentGateway gateway, TimeProvider timeProvider, ILogger<HandlePaymentWebhook> logger)
 {
     public sealed record Input(PaymentWebhookEvent Event, string Provider = "asaas");
 
@@ -34,6 +37,13 @@ public sealed class HandlePaymentWebhook(AppDbContext db, TimeProvider timeProvi
 
         try
         {
+            if (await ConfirmWithProviderAsync(evt, ct) is not { } confirmed)
+            {
+                logger.LogWarning("Webhook {EventId} ({Event}) ignored: not confirmed by provider", evt.EventId, evt.Event);
+                return false;
+            }
+            evt = confirmed;
+
             var subscription = await FindSubscriptionAsync(evt, ct);
             if (subscription is null)
             {
@@ -52,6 +62,35 @@ public sealed class HandlePaymentWebhook(AppDbContext db, TimeProvider timeProvi
             await db.WebhookEvents.Where(w => w.Id == evt.EventId).ExecuteDeleteAsync(CancellationToken.None);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Substitui os dados da cobrança pelos do provedor. Nulo se o provedor não confirma o evento
+    /// (cobrança inexistente, de outra assinatura ou não paga num evento de pagamento).
+    /// </summary>
+    private async Task<PaymentWebhookEvent?> ConfirmWithProviderAsync(PaymentWebhookEvent evt, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(evt.PaymentId)) return evt;
+
+        var detail = await gateway.GetPaymentAsync(evt.PaymentId, ct);
+        if (detail is null) return evt.Event == "PAYMENT_DELETED" ? evt with { Status = "DELETED" } : null;
+        if (!string.IsNullOrEmpty(evt.SubscriptionId) && detail.SubscriptionId != evt.SubscriptionId) return null;
+
+        var p = detail.Payment;
+        var paid = PaymentMapping.FromStatus(p.Status) is PaymentStatus.CONFIRMED or PaymentStatus.RECEIVED;
+        if (evt.Event is "PAYMENT_CONFIRMED" or "PAYMENT_RECEIVED" && !paid) return null;
+
+        return evt with
+        {
+            SubscriptionId = detail.SubscriptionId ?? evt.SubscriptionId,
+            Value = p.Value,
+            DueDate = p.DueDate,
+            PaymentDate = p.PaymentDate,
+            BillingType = p.BillingType,
+            Status = p.Status,
+            InvoiceUrl = p.InvoiceUrl,
+            BankSlipUrl = p.BankSlipUrl,
+        };
     }
 
     private async Task<Subscription?> FindSubscriptionAsync(PaymentWebhookEvent evt, CancellationToken ct)
@@ -89,8 +128,6 @@ public sealed class HandlePaymentWebhook(AppDbContext db, TimeProvider timeProvi
             evt.BankSlipUrl ?? existing?.BankSlipUrl,
             evt.PaymentDate ?? existing?.PaidAt));
 
-        // O evento manda no status (ex.: PAYMENT_RECEIVED com status desatualizado no corpo).
-        if (StatusFromEvent(evt.Event) is { } fromEvent) record.Status = PaymentMapping.FromStatus(fromEvent);
         if (record.IsPaid && record.PaidAt is null) record.PaidAt = DateTimeOffset.UtcNow;
         return wasPaid;
     }
