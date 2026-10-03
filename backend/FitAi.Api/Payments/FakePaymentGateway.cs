@@ -5,8 +5,8 @@ namespace FitAi.Api.Payments;
 
 /// <summary>
 /// Provedor em memória para desenvolvimento e testes (Payments:Provider=Fake). Cria a 1ª cobrança pendente
-/// junto com a assinatura. Não há atalho para "marcar pago": o pagamento só confirma pelo webhook,
-/// o mesmo caminho do provedor real.
+/// junto com a assinatura. <see cref="MarkPaid"/> faz o papel do pagador no provedor; a assinatura só é
+/// liberada pelo webhook, o mesmo caminho do provedor real.
 /// </summary>
 public sealed class FakePaymentGateway(TimeProvider timeProvider) : IPaymentGateway
 {
@@ -37,7 +37,38 @@ public sealed class FakePaymentGateway(TimeProvider timeProvider) : IPaymentGate
     }
 
     public Task<IReadOnlyList<GatewayPayment>> ListSubscriptionPaymentsAsync(string subscriptionId, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<GatewayPayment>>(_payments.TryGetValue(subscriptionId, out var list) ? [.. list] : []);
+        Task.FromResult<IReadOnlyList<GatewayPayment>>(_payments.TryGetValue(subscriptionId, out var list) ? Snapshot(list) : []);
+
+    private static List<GatewayPayment> Snapshot(List<GatewayPayment> list)
+    {
+        lock (list) return [.. list];
+    }
+
+    public Task<GatewayPaymentDetail?> GetPaymentAsync(string paymentId, CancellationToken ct = default)
+    {
+        foreach (var (subscriptionId, list) in _payments)
+        {
+            lock (list)
+            {
+                if (list.FirstOrDefault(p => p.Id == paymentId) is { } payment)
+                    return Task.FromResult<GatewayPaymentDetail?>(new GatewayPaymentDetail(payment, subscriptionId));
+            }
+        }
+        return Task.FromResult<GatewayPaymentDetail?>(null);
+    }
+
+    /// <summary>Simula o pagamento da cobrança no provedor (o webhook ainda precisa ser enviado).</summary>
+    public void MarkPaid(string paymentId, DateTimeOffset paidAt)
+    {
+        foreach (var list in _payments.Values)
+        {
+            lock (list)
+            {
+                var index = list.FindIndex(p => p.Id == paymentId);
+                if (index >= 0) list[index] = list[index] with { Status = "RECEIVED", PaymentDate = paidAt };
+            }
+        }
+    }
 
     public Task<GatewayPixQrCode> GetPixQrCodeAsync(string paymentId, CancellationToken ct = default) =>
         Task.FromResult(new GatewayPixQrCode(

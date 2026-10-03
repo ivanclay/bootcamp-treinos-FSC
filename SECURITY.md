@@ -27,6 +27,10 @@ Revisão feita em 25/09/2026 sobre a versão .NET. Este arquivo registra o que j
 
 Os limites ficam na seção `RateLimit` do `appsettings.json` da API.
 
+## Imagens de capa
+
+- Por padrão só caminhos da própria API (`/covers/...`): o navegador do aluno carrega a capa, e um site externo veria o acesso. Hosts externos confiáveis entram em `Covers:AllowedHosts` (vale para professores, painel da IA e planos criados pelo Coach).
+
 ## Pagamentos
 
 - **Nenhum dado de cartão** passa pelo servidor: PIX pelo QR do Asaas; cartão e boleto na fatura hospedada do Asaas.
@@ -34,17 +38,16 @@ Os limites ficam na seção `RateLimit` do `appsettings.json` da API.
 - **Webhook** `POST /webhooks/asaas`: anônimo por natureza, autenticado pelo token `asaas-access-token` comparado em tempo constante (token vazio rejeita tudo), corpo limitado a 64 KB, idempotência atômica (`INSERT ... ON CONFLICT DO NOTHING` antes de qualquer efeito, liberada se falhar) e 500 em falha para o Asaas reenviar.
 - **Segredos** (`Asaas__ApiKey`, `Asaas__WebhookToken`) só por variável de ambiente/cofre. Chaves de sandbox e de produção são diferentes: não misture.
 - **Simulação de pagamento** só existe com `Payments:Provider=Fake` **e** em Development.
-- Pendente: o corpo do webhook é aceito como verdade quando o token confere. Para defesa extra contra vazamento do token, reconsulte a cobrança no Asaas (`GET payments/{id}`) antes de aplicar.
+- **Reconsulta:** eventos de cobrança são confirmados no Asaas (`GET payments/{id}`) antes de aplicar; status, valor e datas vêm da consulta, não do corpo. Um token vazado não libera assinatura sem pagamento real.
 
 ## Pendências conhecidas
 
-- **Imagens de capa externas:** professores e a IA podem cadastrar URLs de qualquer site; o navegador do aluno carrega essas imagens (o site externo vê o acesso). Considere restringir a `/covers/...` ou a uma lista de domínios.
 - **Revogação de sessão:** o JWT vale 7 dias; sair da conta apaga o token no cliente, mas não o invalida. Para revogar antes, bloqueie o usuário. Um refresh token com expiração curta resolveria.
 - **HTTPS:** a API e a Web não forçam HTTPS por conta própria — em produção, publique atrás de um proxy/ingress com TLS e ligue `ReverseProxy:TrustForwardedHeaders`.
-- **Chaves de proteção de dados da Web:** em containers, as chaves do cookie de login ficam dentro do container; ao recriá-lo, todos precisam entrar de novo. Em produção, persista-as (volume ou `PersistKeysTo...`).
 
 ## Checklist de produção
 
+- [ ] `DataProtection:KeysPath` da Web apontando para um volume persistente (o `docker-compose.yml` já usa `web_keys`); sem isso, recriar o container desloga todos.
 - [ ] `ASPNETCORE_ENVIRONMENT=Production` na API e na Web.
 - [ ] `Auth:JwtSecret` próprio, aleatório, com 32+ caracteres (a API recusa o de desenvolvimento).
 - [ ] `Auth:Google:ClientId/ClientSecret` configurados; `Auth:AllowedRedirectUris` só com as URLs reais (HTTPS e `fitai://auth`).

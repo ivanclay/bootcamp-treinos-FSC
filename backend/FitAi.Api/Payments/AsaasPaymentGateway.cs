@@ -64,16 +64,31 @@ public sealed class AsaasPaymentGateway : IPaymentGateway
     {
         var list = await SendAsync<ListResponse<PaymentDto>>(
             HttpMethod.Get, $"subscriptions/{Uri.EscapeDataString(subscriptionId)}/payments", null, ct);
-        return list.Data.Select(p => new GatewayPayment(
-            p.Id,
-            p.Value,
-            PaymentMapping.ParseDate(p.DueDate) ?? DateTimeOffset.UtcNow,
-            p.Status ?? "PENDING",
-            p.BillingType ?? "PIX",
-            p.InvoiceUrl,
-            p.BankSlipUrl,
-            PaymentMapping.ParseDate(p.PaymentDate))).ToList();
+        return list.Data.Select(ToGateway).ToList();
     }
+
+    public async Task<GatewayPaymentDetail?> GetPaymentAsync(string paymentId, CancellationToken ct = default)
+    {
+        try
+        {
+            var p = await SendAsync<PaymentDto>(HttpMethod.Get, $"payments/{Uri.EscapeDataString(paymentId)}", null, ct);
+            return p.Deleted == true ? null : new GatewayPaymentDetail(ToGateway(p), p.Subscription);
+        }
+        catch (PaymentGatewayException e) when (e.StatusCode == 404)
+        {
+            return null;
+        }
+    }
+
+    private static GatewayPayment ToGateway(PaymentDto p) => new(
+        p.Id,
+        p.Value,
+        PaymentMapping.ParseDate(p.DueDate) ?? DateTimeOffset.UtcNow,
+        p.Status ?? "PENDING",
+        p.BillingType ?? "PIX",
+        p.InvoiceUrl,
+        p.BankSlipUrl,
+        PaymentMapping.ParseDate(p.PaymentDate));
 
     public async Task<GatewayPixQrCode> GetPixQrCodeAsync(string paymentId, CancellationToken ct = default)
     {
@@ -138,7 +153,7 @@ public sealed class AsaasPaymentGateway : IPaymentGateway
     private sealed record ListResponse<T>(List<T> Data);
     private sealed record PaymentDto(
         string Id, decimal Value, string? DueDate, string? Status, string? BillingType,
-        string? InvoiceUrl, string? BankSlipUrl, string? PaymentDate);
+        string? InvoiceUrl, string? BankSlipUrl, string? PaymentDate, string? Subscription = null, bool? Deleted = null);
     private sealed record PixDto(string? EncodedImage, string? Payload, string? ExpirationDate);
     private sealed record ErrorResponseDto(List<ErrorItem>? Errors);
     private sealed record ErrorItem(string? Code, string? Description);

@@ -1,6 +1,7 @@
 using System.Globalization;
 using FitAi.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,15 @@ builder.Services.AddHttpClient<ApiClient>(c =>
         c.Timeout = TimeSpan.FromSeconds(120); // o Coach AI pode demorar enquanto usa as tools
     })
     .AddHttpMessageHandler<BearerTokenHandler>();
+
+// Chaves que protegem o cookie de login: persistidas em disco para sobreviver a recriações do container.
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("FitAi.Web")
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
