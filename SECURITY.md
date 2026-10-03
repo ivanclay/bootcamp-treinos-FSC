@@ -27,6 +27,10 @@ Revisão feita em 25/09/2026 sobre a versão .NET. Este arquivo registra o que j
 
 Os limites ficam na seção `RateLimit` do `appsettings.json` da API.
 
+## Imagens de capa
+
+- Por padrão só caminhos da própria API (`/covers/...`): o navegador do aluno carrega a capa, e um site externo veria o acesso. Hosts externos confiáveis entram em `Covers:AllowedHosts` (vale para professores, painel da IA e planos criados pelo Coach).
+
 ## Pagamentos
 
 - **Nenhum dado de cartão** passa pelo servidor: PIX pelo QR do Asaas; cartão e boleto na fatura hospedada do Asaas.
@@ -38,7 +42,6 @@ Os limites ficam na seção `RateLimit` do `appsettings.json` da API.
 
 ## Pendências conhecidas
 
-- **Imagens de capa externas:** professores e a IA podem cadastrar URLs de qualquer site; o navegador do aluno carrega essas imagens (o site externo vê o acesso). Considere restringir a `/covers/...` ou a uma lista de domínios.
 - **Revogação de sessão:** o JWT vale 7 dias; sair da conta apaga o token no cliente, mas não o invalida. Para revogar antes, bloqueie o usuário. Um refresh token com expiração curta resolveria.
 - **HTTPS:** a API e a Web não forçam HTTPS por conta própria — em produção, publique atrás de um proxy/ingress com TLS e ligue `ReverseProxy:TrustForwardedHeaders`.
 

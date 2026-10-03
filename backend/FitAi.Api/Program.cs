@@ -27,6 +27,10 @@ builder.Services.Configure<YouTubeOptions>(config.GetSection(YouTubeOptions.Sect
 builder.Services.Configure<PlanOptions>(config.GetSection(PlanOptions.Section));
 builder.Services.Configure<PaymentsOptions>(config.GetSection(PaymentsOptions.Section));
 builder.Services.Configure<AsaasOptions>(config.GetSection(AsaasOptions.Section));
+
+// Capas externas: o navegador do aluno carrega a imagem, então só hosts confiáveis (vazio = só /covers/...).
+CoverImageUrlAttribute.AllowedHosts = new HashSet<string>(
+    config.GetSection("Covers:AllowedHosts").Get<string[]>() ?? [], StringComparer.OrdinalIgnoreCase);
 var rateLimitOptions = config.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions();
 var authOptions = config.GetSection(AuthOptions.Section).Get<AuthOptions>() ?? new AuthOptions();
 

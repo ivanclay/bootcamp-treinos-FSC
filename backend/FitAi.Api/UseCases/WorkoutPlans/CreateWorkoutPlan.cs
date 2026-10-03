@@ -65,6 +65,7 @@ public static class WorkoutPlanValidator
     public static void Validate(SaveWorkoutPlanRequest plan)
     {
         if (string.IsNullOrWhiteSpace(plan.Name)) throw new ValidationException("Informe o nome do plano");
+        if (!CoverImageUrlAttribute.IsValid(plan.CoverImageUrl)) throw new ValidationException("Imagem de capa não permitida");
         if (plan.WorkoutDays.Count == 0) throw new ValidationException("O plano precisa ter pelo menos um dia");
 
         var duplicated = plan.WorkoutDays.GroupBy(d => d.WeekDay).FirstOrDefault(g => g.Count() > 1);
@@ -73,6 +74,10 @@ public static class WorkoutPlanValidator
         foreach (var day in plan.WorkoutDays)
         {
             if (string.IsNullOrWhiteSpace(day.Name)) throw new ValidationException("Informe o nome de cada dia");
+            if (!CoverImageUrlAttribute.IsValid(day.CoverImageUrl))
+            {
+                throw new ValidationException($"Imagem de capa não permitida no treino '{day.Name}'");
+            }
             if (!day.IsRest && day.Exercises.Count == 0)
             {
                 throw new ValidationException($"O treino '{day.Name}' precisa de pelo menos um exercício");
